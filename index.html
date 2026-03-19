@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SuperCare Tracker — Mulgrave Dental Group</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F7F3EE;color:#1A1A18;font-size:13px;min-height:100vh;padding:1.5rem}
@@ -253,7 +253,11 @@ function initDB(){
   try{
     const lib=window.supabase||window.Supabase;
     if(!lib||!lib.createClient){throw new Error('Supabase library not loaded');}
-    db=lib.createClient(SUPA_URL,SUPA_KEY);
+    // Use native fetch to avoid postMessage/clone issues
+    db=lib.createClient(SUPA_URL,SUPA_KEY,{
+      global:{fetch:(...args)=>fetch(...args)},
+      auth:{persistSession:false,autoRefreshToken:false}
+    });
     console.log('Supabase client OK');
     return true;
   }catch(e){
