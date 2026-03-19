@@ -209,7 +209,7 @@ hr{border:none;border-top:1px solid #F0EDE8;margin:12px 0}
   <div id="allView">
     <div class="filters">
       <select id="filterType"><option value="">All types</option><option>Regular (Cash)</option><option>Regular GA</option><option>SuperCare Non-GA</option><option>SuperCare GA</option></select>
-      <select id="filterStatus"><option value="">All statuses</option><option>Application Submitted</option><option>Documents Pending</option><option>Under Review</option><option>Monitoring</option><option>Approved</option><option>Pre-Op Surgery</option><option>Rejected</option><option>Treatment Booked</option></select>
+      <select id="filterStatus"><option value="">All statuses</option><option>New Patient</option><option>Documents Pending</option><option>Under Review</option><option>Monitoring</option><option>Approved</option><option>Pre-Op Surgery</option><option>Rejected</option><option>Treatment Booked</option></select>
       <select id="filterWatcher"><option value="">All watchers</option></select>
     </div>
     <div id="kanban" class="kanban"></div>
@@ -347,32 +347,32 @@ function getTypeBadgeClass(type){
 // 'Application Submitted' = unlocks immediately
 
 const TASK_STAGE_CASH={
-  0:'Application Submitted',1:'Application Submitted',2:'Treatment Booked'
+  0:'New Patient',1:'New Patient',2:'New Patient'
 };
 
 // Regular GA: all tasks (including pre-op) unlock immediately
 const TASK_STAGE_REGULAR_GA={
-  0:'Application Submitted',1:'Application Submitted',2:'Application Submitted',
-  3:'Application Submitted',4:'Application Submitted',5:'Application Submitted',
-  6:'Application Submitted',7:'Application Submitted',8:'Application Submitted',
-  9:'Application Submitted',10:'Application Submitted'
+  0:'New Patient',1:'New Patient',2:'New Patient',
+  3:'New Patient',4:'New Patient',5:'New Patient',
+  6:'New Patient',7:'New Patient',8:'New Patient',
+  9:'New Patient',10:'New Patient'
 };
 
 const TASK_STAGE_SC_NONGA={
-  0:'Application Submitted',1:'Application Submitted',2:'Application Submitted',
-  3:'Application Submitted',4:'Application Submitted',5:'Application Submitted',
+  0:'New Patient',1:'New Patient',2:'New Patient',
+  3:'New Patient',4:'New Patient',5:'New Patient',
   6:'Monitoring',7:'Approved'
 };
 
 // SuperCare GA: SuperCare tasks unlock by stage, Pre-Op (10-18) unlock immediately
 const TASK_STAGE_SC_GA={
-  0:'Application Submitted',1:'Application Submitted',2:'Application Submitted',
-  3:'Application Submitted',4:'Application Submitted',5:'Application Submitted',
-  6:'Application Submitted',7:'Monitoring',8:'Approved',9:'Approved',
+  0:'New Patient',1:'New Patient',2:'New Patient',
+  3:'New Patient',4:'New Patient',5:'New Patient',
+  6:'New Patient',7:'Monitoring',8:'Approved',9:'Approved',
   // Pre-Op clearance — all unlock immediately
-  10:'Application Submitted',11:'Application Submitted',12:'Application Submitted',
-  13:'Application Submitted',14:'Application Submitted',15:'Application Submitted',
-  16:'Application Submitted',17:'Application Submitted',18:'Application Submitted'
+  10:'New Patient',11:'New Patient',12:'New Patient',
+  13:'New Patient',14:'New Patient',15:'New Patient',
+  16:'New Patient',17:'New Patient',18:'New Patient'
 };
 
 // ── STAGE GATES ────────────────────────────────────────────────────────────
@@ -420,21 +420,21 @@ function getTaskStageMap(p){
 
 
 // Stage ownership maps
-const TASK_STAGE_STD={0:'Application Submitted',1:'Application Submitted',2:'Application Submitted',3:'Application Submitted',4:'Application Submitted',5:'Application Submitted',6:'Monitoring',7:'Approved'};
-const TASK_STAGE_GA={0:'Application Submitted',1:'Application Submitted',2:'Application Submitted',3:'Application Submitted',4:'Application Submitted',5:'Application Submitted',6:'Application Submitted',7:'Monitoring',8:'Approved',9:'Approved',10:'Pre-Op Surgery',11:'Pre-Op Surgery',12:'Pre-Op Surgery',13:'Pre-Op Surgery',14:'Pre-Op Surgery',15:'Pre-Op Surgery',16:'Pre-Op Surgery',17:'Pre-Op Surgery',18:'Pre-Op Surgery'};
+const TASK_STAGE_STD={0:'New Patient',1:'New Patient',2:'New Patient',3:'New Patient',4:'New Patient',5:'New Patient',6:'Monitoring',7:'Approved'};
+const TASK_STAGE_GA={0:'New Patient',1:'New Patient',2:'New Patient',3:'New Patient',4:'New Patient',5:'New Patient',6:'New Patient',7:'Monitoring',8:'Approved',9:'Approved',10:'Pre-Op Surgery',11:'Pre-Op Surgery',12:'Pre-Op Surgery',13:'Pre-Op Surgery',14:'Pre-Op Surgery',15:'Pre-Op Surgery',16:'Pre-Op Surgery',17:'Pre-Op Surgery',18:'Pre-Op Surgery'};
 
-const STATUS_ORDER=['Application Submitted','Documents Pending','Under Review','Monitoring','Approved','Pre-Op Surgery','Rejected','Treatment Booked'];
+const STATUS_ORDER=['New Patient','Documents Pending','Under Review','Monitoring','Approved','Pre-Op Surgery','Rejected','Treatment Booked'];
 
 // Which status options are relevant per patient type
 function getStatusOptions(p){
-  if(p.type==='Regular (Cash)')return['Application Submitted','Treatment Booked','Rejected'];
-  if(p.type==='Regular GA')return['Application Submitted','Pre-Op Surgery','Treatment Booked','Rejected'];
-  if(p.type==='SuperCare Non-GA')return['Application Submitted','Documents Pending','Under Review','Monitoring','Approved','Rejected','Treatment Booked'];
+  if(p.type==='Regular (Cash)')return['New Patient','Treatment Booked','Rejected'];
+  if(p.type==='Regular GA')return['New Patient','Pre-Op Surgery','Treatment Booked','Rejected'];
+  if(p.type==='SuperCare Non-GA')return['New Patient','Documents Pending','Under Review','Monitoring','Approved','Rejected','Treatment Booked'];
   // SuperCare GA
-  return['Application Submitted','Documents Pending','Under Review','Monitoring','Approved','Pre-Op Surgery','Rejected','Treatment Booked'];
+  return['New Patient','Documents Pending','Under Review','Monitoring','Approved','Pre-Op Surgery','Rejected','Treatment Booked'];
 }
 const STATUS_COLS=[
-  {key:'Application Submitted',cls:'col-submitted'},
+  {key:'New Patient',cls:'col-submitted'},
   {key:'Documents Pending',cls:'col-pending'},
   {key:'Under Review',cls:'col-review'},
   {key:'Monitoring',cls:'col-monitoring'},
@@ -621,7 +621,7 @@ function renderStats(){
   const od=patients.filter(p=>isOD(p.follow_up)&&!['Treatment Booked','Rejected'].includes(p.status)).length;
   document.getElementById('statsRow').innerHTML=`
     <div class="stat"><div class="stat-label">Total patients</div><div class="stat-val">${patients.length}</div></div>
-    <div class="stat"><div class="stat-label">In pipeline</div><div class="stat-val">${patients.filter(p=>['Application Submitted','Documents Pending','Under Review','Monitoring','Approved','Pre-Op Surgery'].includes(p.status)).length}</div></div>
+    <div class="stat"><div class="stat-label">In pipeline</div><div class="stat-val">${patients.filter(p=>['New Patient','Documents Pending','Under Review','Monitoring','Approved','Pre-Op Surgery'].includes(p.status)).length}</div></div>
     <div class="stat"><div class="stat-label">Approved</div><div class="stat-val">${patients.filter(p=>['Approved','Pre-Op Surgery'].includes(p.status)).length}</div></div>
     <div class="stat"><div class="stat-label">Overdue</div><div class="stat-val" style="color:${od>0?'#A32D2D':'inherit'}">${od}</div></div>`;
 }
@@ -1197,7 +1197,7 @@ async function saveNew(){
   const {data,error}=await db.from('sc_patients').insert({
     name,type:document.getElementById('ft').value,
     value:parseFloat(document.getElementById('fv').value)||0,
-    status:'Application Submitted',
+    status:'New Patient',
     submitted:document.getElementById('fs').value||null,
     follow_up:document.getElementById('ff').value||null,
     ref:document.getElementById('fr').value.trim()||null,
