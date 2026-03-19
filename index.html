@@ -107,6 +107,19 @@ hr{border:none;border-top:1px solid #F0EDE8;margin:12px 0}
 .check-actions{display:flex;align-items:center;gap:5px;flex-shrink:0}
 .ck-detail-panel{display:none;margin-top:6px;padding:8px 10px;background:#fff;border-radius:6px;border:1px solid #E8E4DF}
 .task-notes-section{margin-top:10px;border-top:1px solid #EEEBE6;padding-top:10px}
+.task-attachments{margin-top:10px;border-top:1px solid #EEEBE6;padding-top:10px}
+.attach-head{font-size:11px;font-weight:700;color:#6B6B68;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.attach-list{display:flex;flex-direction:column;gap:5px;margin-bottom:8px}
+.attach-item{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border:1px solid #E8E4DF;border-radius:6px;font-size:12px}
+.attach-icon{font-size:16px;flex-shrink:0;width:20px;text-align:center}
+.attach-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#185FA5;cursor:pointer;text-decoration:underline}
+.attach-name:hover{color:#0C447C}
+.attach-meta{font-size:10px;color:#A0A09D;white-space:nowrap;flex-shrink:0}
+.attach-del{background:none;border:none;cursor:pointer;color:#A0A09D;font-size:14px;padding:0;line-height:1;flex-shrink:0}
+.attach-del:hover{color:#A32D2D}
+.attach-upload{display:flex;gap:6px;align-items:center}
+.attach-upload input[type=file]{font-size:11px;flex:1;min-width:0}
+.attach-uploading{font-size:11px;color:#185FA5;padding:4px 0}
 .task-notes-head{font-size:11px;font-weight:700;color:#6B6B68;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
 .note-entry{background:#F7F3EE;border-radius:6px;padding:7px 10px;margin-bottom:5px;font-size:12px}
 .note-meta{font-size:10px;color:#A0A09D;margin-bottom:3px}
@@ -556,15 +569,17 @@ async function reloadPatient(pid){
     {data:watchers},
     {data:ckAss},
     {data:notes},
+    {data:attachments},
   ]=await Promise.all([
     db.from('sc_patients').select('*').eq('id',pid).single(),
     db.from('sc_task_checks').select('*').eq('patient_id',pid),
     db.from('sc_task_watchers').select('*').eq('patient_id',pid),
     db.from('sc_check_assignees').select('*').eq('patient_id',pid),
     db.from('sc_notes').select('*').eq('patient_id',pid).order('created_at'),
+    db.from('sc_attachments').select('*').eq('patient_id',pid).order('created_at'),
   ]);
   if(!p)return null;
-  const enriched={...p,_checks:checks||[],_watchers:watchers||[],_ckAssignees:ckAss||[],_notes:notes||[]};
+  const enriched={...p,_checks:checks||[],_watchers:watchers||[],_ckAssignees:ckAss||[],_notes:notes||[],_attachments:attachments||[]};
   const idx=patients.findIndex(x=>x.id===pid);
   if(idx>=0)patients[idx]=enriched;
   else patients.unshift(enriched);
@@ -748,6 +763,19 @@ function renderDetail(p){
             </div>`;
           }).join('')}
         </div>
+        <div class="task-attachments">
+          <div class="attach-head">
+            <span>📎 Attachments</span>
+          </div>
+          <div class="attach-list" id="attachList_${p.id}_${ti}">
+            ${renderAttachList(p,ti)}
+          </div>
+          <div class="attach-upload">
+            <input type="file" id="attachFile_${p.id}_${ti}" multiple accept="*/*" style="font-size:11px;flex:1">
+            <button class="btn btn-sm btn-blue" onclick="uploadAttach('${p.id}',${ti})">Upload</button>
+          </div>
+          <div id="attachStatus_${p.id}_${ti}" style="display:none" class="attach-uploading"></div>
+        </div>
         <div class="task-notes-section">
           <div class="task-notes-head">Task notes</div>
           <div id="tnotes_${p.id}_${ti}">${notesHtml}</div>
@@ -851,6 +879,86 @@ async function addCkAss(pid,ti,ci,sel){
 async function removeCkAss(pid,ti,ci,uid){
   await db.from('sc_check_assignees').delete().eq('patient_id',pid).eq('task_index',ti).eq('check_index',ci).eq('user_id',uid);
   const p=await reloadPatient(pid);if(p)renderDetail(p);
+}
+
+// ── ATTACHMENTS ────────────────────────────────────────────────────────────
+function getFileIcon(type){
+  if(!type)return'📄';
+  if(type.includes('pdf'))return'📕';
+  if(type.includes('image'))return'🖼';
+  if(type.includes('word')||type.includes('document'))return'📝';
+  if(type.includes('sheet')||type.includes('excel')||type.includes('csv'))return'📊';
+  return'📄';
+}
+
+function formatBytes(b){
+  if(!b)return'';
+  if(b<1024)return b+'B';
+  if(b<1048576)return Math.round(b/1024)+'KB';
+  return(b/1048576).toFixed(1)+'MB';
+}
+
+function renderAttachList(p,ti){
+  const files=(p._attachments||[]).filter(a=>a.task_index===ti);
+  if(!files.length)return'<div style="font-size:11px;color:#A0A09D;font-style:italic">No attachments yet.</div>';
+  return files.map(a=>`<div class="attach-item">
+    <span class="attach-icon">${getFileIcon(a.file_type)}</span>
+    <span class="attach-name" onclick="downloadAttach('${a.file_path}','${a.file_name}')" title="${a.file_name}">${a.file_name}</span>
+    <span class="attach-meta">${formatBytes(a.file_size)} · ${new Date(a.created_at).toLocaleDateString('en-AU',{day:'2-digit',month:'short'})}</span>
+    <button class="attach-del" onclick="deleteAttach('${a.id}','${a.file_path}','${p.id}',${ti})" title="Delete">×</button>
+  </div>`).join('');
+}
+
+async function uploadAttach(pid,ti){
+  const input=document.getElementById(`attachFile_${pid}_${ti}`);
+  const status=document.getElementById(`attachStatus_${pid}_${ti}`);
+  if(!input||!input.files.length){alert('Please select a file first.');return;}
+  const files=Array.from(input.files);
+  status.style.display='block';
+  status.textContent=`Uploading ${files.length} file${files.length>1?'s':''}...`;
+  let uploaded=0;
+  for(const file of files){
+    const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const path=`${pid}/${ti}/${Date.now()}_${safeName}`;
+    const{error:upErr}=await db.storage.from('patient-attachments').upload(path,file,{upsert:false});
+    if(upErr){status.textContent='Upload failed: '+upErr.message;status.style.color='#A32D2D';continue;}
+    const{error:dbErr}=await db.from('sc_attachments').insert({
+      patient_id:pid,task_index:ti,file_name:file.name,
+      file_path:path,file_size:file.size,file_type:file.type,uploaded_by:'Izza'
+    });
+    if(dbErr){status.textContent='File saved but metadata failed: '+dbErr.message;continue;}
+    uploaded++;
+  }
+  status.textContent=`${uploaded} file${uploaded>1?'s':''} uploaded!`;
+  status.style.color='#3B6D11';
+  setTimeout(()=>{status.style.display='none';status.style.color='';},3000);
+  input.value='';
+  const p=await reloadPatient(pid);
+  if(p){
+    const listEl=document.getElementById(`attachList_${pid}_${ti}`);
+    if(listEl)listEl.innerHTML=renderAttachList(p,ti);
+  }
+  addNotif(`${uploaded} file${uploaded>1?'s':''} attached to task`);
+}
+
+async function downloadAttach(path,name){
+  const{data,error}=await db.storage.from('patient-attachments').download(path);
+  if(error){alert('Download failed: '+error.message);return;}
+  const url=URL.createObjectURL(data);
+  const a=document.createElement('a');a.href=url;a.download=name;a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function deleteAttach(id,path,pid,ti){
+  if(!confirm('Delete this attachment? This cannot be undone.'))return;
+  await db.storage.from('patient-attachments').remove([path]);
+  await db.from('sc_attachments').delete().eq('id',id);
+  const p=await reloadPatient(pid);
+  if(p){
+    const listEl=document.getElementById(`attachList_${pid}_${ti}`);
+    if(listEl)listEl.innerHTML=renderAttachList(p,ti);
+  }
+  addNotif('Attachment deleted');
 }
 
 async function addTaskNote(pid,ti){
