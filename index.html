@@ -53,7 +53,7 @@ select{font-size:12px;padding:4px 8px;height:30px;border-radius:6px;border:1px s
 .col-submitted .col-label{color:#185FA5}.col-pending .col-label{color:#854F0B}
 .col-review .col-label{color:#7F77DD}.col-monitoring .col-label{color:#1D9E75}
 .col-approved .col-label{color:#3B6D11}.col-preop .col-label{color:#993556}
-.col-rejected .col-label{color:#A32D2D}.col-booked .col-label{color:#0F6E56}
+.col-rejected .col-label{color:#A32D2D}.col-booked .col-label{color:#0F6E56}.col-offboard .col-label{color:#534AB7}
 .card{background:#fff;border:1px solid #E8E4DF;border-radius:8px;padding:9px 10px;margin-bottom:6px;cursor:pointer;transition:box-shadow .15s}
 .card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .card-name{font-weight:700;font-size:12px;color:#1A1A18;margin-bottom:4px}
@@ -209,7 +209,7 @@ hr{border:none;border-top:1px solid #F0EDE8;margin:12px 0}
   <div id="allView">
     <div class="filters">
       <select id="filterType"><option value="">All types</option><option>Regular (Cash)</option><option>Regular GA</option><option>SuperCare Non-GA</option><option>SuperCare GA</option></select>
-      <select id="filterStatus"><option value="">All statuses</option><option>New Patient</option><option>Documents Pending</option><option>Under Review</option><option>Monitoring</option><option>Approved</option><option>Pre-Op Surgery</option><option>Rejected</option><option>Treatment Booked</option></select>
+      <select id="filterStatus"><option value="">All statuses</option><option>New Patient</option><option>Documents Pending</option><option>Under Review</option><option>Monitoring</option><option>Approved</option><option>Pre-Op Surgery</option><option>Rejected</option><option>Treatment Booked</option><option>Offboarding</option></select>
       <select id="filterWatcher"><option value="">All watchers</option></select>
     </div>
     <div id="kanban" class="kanban"></div>
@@ -347,7 +347,7 @@ function getTypeBadgeClass(type){
 // 'Application Submitted' = unlocks immediately
 
 const TASK_STAGE_CASH={
-  0:'New Patient',1:'New Patient',2:'New Patient'
+  0:'New Patient',1:'New Patient',2:'Treatment Booked'
 };
 
 // Regular GA: all tasks (including pre-op) unlock immediately
@@ -355,7 +355,7 @@ const TASK_STAGE_REGULAR_GA={
   0:'New Patient',1:'New Patient',2:'New Patient',
   3:'New Patient',4:'New Patient',5:'New Patient',
   6:'New Patient',7:'New Patient',8:'New Patient',
-  9:'New Patient',10:'New Patient'
+  9:'New Patient',10:'Treatment Booked'
 };
 
 const TASK_STAGE_SC_NONGA={
@@ -379,11 +379,13 @@ const TASK_STAGE_SC_GA={
 // What tasks must be done BEFORE entering each stage
 
 const STAGE_GATE_CASH={
-  'Treatment Booked':[0,1],
+  'Treatment Booked':[0,1],   // tasks 0+1 done before booking
+  'Offboarding':[0,1,2],      // all tasks done before offboarding
 };
 
 const STAGE_GATE_REGULAR_GA={
-  'Treatment Booked':[0,1,2,3,4,5,6,7,8,9,10],
+  'Treatment Booked':[0,1,2,3,4,5,6,7,8,9],   // clearance done before booking
+  'Offboarding':[0,1,2,3,4,5,6,7,8,9,10],      // all tasks done before offboarding
 };
 
 const STAGE_GATE_SC_NONGA={
@@ -391,7 +393,8 @@ const STAGE_GATE_SC_NONGA={
   'Under Review':[0,1,2,3,4,5],
   'Monitoring':[0,1,2,3,4,5],
   'Approved':[0,1,2,3,4,5,6],
-  'Treatment Booked':[0,1,2,3,4,5,6,7],
+  'Treatment Booked':[0,1,2,3,4,5,6],
+  'Offboarding':[0,1,2,3,4,5,6,7],
 };
 
 const STAGE_GATE_SC_GA={
@@ -401,6 +404,7 @@ const STAGE_GATE_SC_GA={
   'Approved':[0,1,2,3,4,5,6,7],
   'Pre-Op Surgery':[0,1,2,3,4,5,6,7],
   'Treatment Booked':[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
+  'Offboarding':[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
 };
 
 function getGate(p){
@@ -423,15 +427,15 @@ function getTaskStageMap(p){
 const TASK_STAGE_STD={0:'New Patient',1:'New Patient',2:'New Patient',3:'New Patient',4:'New Patient',5:'New Patient',6:'Monitoring',7:'Approved'};
 const TASK_STAGE_GA={0:'New Patient',1:'New Patient',2:'New Patient',3:'New Patient',4:'New Patient',5:'New Patient',6:'New Patient',7:'Monitoring',8:'Approved',9:'Approved',10:'Pre-Op Surgery',11:'Pre-Op Surgery',12:'Pre-Op Surgery',13:'Pre-Op Surgery',14:'Pre-Op Surgery',15:'Pre-Op Surgery',16:'Pre-Op Surgery',17:'Pre-Op Surgery',18:'Pre-Op Surgery'};
 
-const STATUS_ORDER=['New Patient','Documents Pending','Under Review','Monitoring','Approved','Pre-Op Surgery','Rejected','Treatment Booked'];
+const STATUS_ORDER=['New Patient','Documents Pending','Under Review','Monitoring','Approved','Pre-Op Surgery','Rejected','Treatment Booked','Offboarding'];
 
 // Which status options are relevant per patient type
 function getStatusOptions(p){
-  if(p.type==='Regular (Cash)')return['New Patient','Treatment Booked','Rejected'];
-  if(p.type==='Regular GA')return['New Patient','Pre-Op Surgery','Treatment Booked','Rejected'];
-  if(p.type==='SuperCare Non-GA')return['New Patient','Documents Pending','Under Review','Monitoring','Approved','Rejected','Treatment Booked'];
+  if(p.type==='Regular (Cash)')return['New Patient','Treatment Booked','Offboarding','Rejected'];
+  if(p.type==='Regular GA')return['New Patient','Pre-Op Surgery','Treatment Booked','Offboarding','Rejected'];
+  if(p.type==='SuperCare Non-GA')return['New Patient','Documents Pending','Under Review','Monitoring','Approved','Rejected','Treatment Booked','Offboarding'];
   // SuperCare GA
-  return['New Patient','Documents Pending','Under Review','Monitoring','Approved','Pre-Op Surgery','Rejected','Treatment Booked'];
+  return['New Patient','Documents Pending','Under Review','Monitoring','Approved','Pre-Op Surgery','Rejected','Treatment Booked','Offboarding'];
 }
 const STATUS_COLS=[
   {key:'New Patient',cls:'col-submitted'},
@@ -442,6 +446,7 @@ const STATUS_COLS=[
   {key:'Pre-Op Surgery',cls:'col-preop'},
   {key:'Rejected',cls:'col-rejected'},
   {key:'Treatment Booked',cls:'col-booked'},
+  {key:'Offboarding',cls:'col-offboard'},
 ];
 
 const STAGE_GATE_STD={'Documents Pending':[0],'Under Review':[0,1,2,3,4,5],'Monitoring':[0,1,2,3,4,5],'Approved':[0,1,2,3,4,5,6],'Treatment Booked':[0,1,2,3,4,5,6,7]};
@@ -618,7 +623,7 @@ function renderWatcherFilter(){
 }
 
 function renderStats(){
-  const od=patients.filter(p=>isOD(p.follow_up)&&!['Treatment Booked','Rejected'].includes(p.status)).length;
+  const od=patients.filter(p=>isOD(p.follow_up)&&!['Treatment Booked','Offboarding','Rejected'].includes(p.status)).length;
   document.getElementById('statsRow').innerHTML=`
     <div class="stat"><div class="stat-label">Total patients</div><div class="stat-val">${patients.length}</div></div>
     <div class="stat"><div class="stat-label">In pipeline</div><div class="stat-val">${patients.filter(p=>['New Patient','Documents Pending','Under Review','Monitoring','Approved','Pre-Op Surgery'].includes(p.status)).length}</div></div>
@@ -627,7 +632,7 @@ function renderStats(){
 }
 
 function renderReminders(){
-  const od=patients.filter(p=>isOD(p.follow_up)&&!['Treatment Booked','Rejected'].includes(p.status));
+  const od=patients.filter(p=>isOD(p.follow_up)&&!['Treatment Booked','Offboarding','Rejected'].includes(p.status));
   const el=document.getElementById('reminders');
   if(od.length){el.style.display='block';el.innerHTML='<strong>⚑ Follow-up overdue:</strong> '+od.map(p=>`<span style="margin-left:8px">• ${p.name} (${fd(p.follow_up)})</span>`).join('');}
   else el.style.display='none';
@@ -662,7 +667,7 @@ function renderKanban(){
 function renderList(){
   const data=filtered();const body=document.getElementById('listBody');body.innerHTML='';
   data.forEach(p=>{
-    const pc=pct(p),od=isOD(p.follow_up)&&!['Treatment Booked','Rejected'].includes(p.status),ws=allWatchers(p);
+    const pc=pct(p),od=isOD(p.follow_up)&&!['Treatment Booked','Offboarding','Rejected'].includes(p.status),ws=allWatchers(p);
     const tr=document.createElement('tr');tr.style.cursor='pointer';tr.onclick=()=>openDetail(p.id);
     tr.innerHTML=`<td><strong>${p.name}</strong>${p.ref?`<div style="font-size:10px;color:#6B6B68">${p.ref}</div>`:''}</td>
       <td><span class="badge ${getTypeBadgeClass(p.type)}">${p.type}</span></td>
@@ -1424,7 +1429,7 @@ function openReport(){
   const dateStr=new Date().toLocaleDateString('en-AU',{day:'2-digit',month:'long',year:'numeric'});
   const timeStr=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
   const total=patients.length;
-  const overdue=patients.filter(p=>isOD(p.follow_up)&&!['Treatment Booked','Rejected'].includes(p.status)).length;
+  const overdue=patients.filter(p=>isOD(p.follow_up)&&!['Treatment Booked','Offboarding','Rejected'].includes(p.status)).length;
 
   document.getElementById('modalBox').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
@@ -1440,7 +1445,7 @@ function openReport(){
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:1rem">
       <div class="stat" style="padding:8px 10px"><div class="stat-label">Total</div><div class="stat-val" style="font-size:18px">${total}</div></div>
-      <div class="stat" style="padding:8px 10px"><div class="stat-label">In pipeline</div><div class="stat-val" style="font-size:18px">${patients.filter(p=>!['Treatment Booked','Rejected'].includes(p.status)).length}</div></div>
+      <div class="stat" style="padding:8px 10px"><div class="stat-label">In pipeline</div><div class="stat-val" style="font-size:18px">${patients.filter(p=>!['Treatment Booked','Offboarding','Rejected'].includes(p.status)).length}</div></div>
       <div class="stat" style="padding:8px 10px"><div class="stat-label">Approved</div><div class="stat-val" style="font-size:18px">${patients.filter(p=>['Approved','Pre-Op Surgery'].includes(p.status)).length}</div></div>
       <div class="stat" style="padding:8px 10px;background:${overdue>0?'#FCEBEB':''}"><div class="stat-label">Overdue</div><div class="stat-val" style="font-size:18px;color:${overdue>0?'#A32D2D':'inherit'}">${overdue}</div></div>
     </div>
@@ -1459,7 +1464,7 @@ function renderReportPreview(dateStr,timeStr){
     const latestNote=[...(p._notes||[])].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0];
     const noteStr=latestNote?`Latest note (${latestNote.author}): "${latestNote.text}"`:'No notes recorded.';
     const ws=allWatchers(p).map(u=>u.name).join(', ')||'Unassigned';
-    const od=isOD(p.follow_up)&&!['Treatment Booked','Rejected'].includes(p.status);
+    const od=isOD(p.follow_up)&&!['Treatment Booked','Offboarding','Rejected'].includes(p.status);
     return`Patient: ${p.name}
   Type: ${p.type} | Ref: ${p.ref||'[pending]'} | Value: $${(p.value||0).toLocaleString()}
   Status: ${p.status}${od?' \u26a0 FOLLOW-UP OVERDUE':''}
