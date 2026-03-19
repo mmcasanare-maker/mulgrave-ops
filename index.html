@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SuperCare Tracker — Mulgrave Dental Group</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F7F3EE;color:#1A1A18;font-size:13px;min-height:100vh;padding:1.5rem}
@@ -46,6 +46,10 @@ select{font-size:12px;padding:4px 8px;height:30px;border-radius:6px;border:1px s
 .col-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .col-label{font-size:10px;font-weight:700;color:#6B6B68;text-transform:uppercase;letter-spacing:.4px;line-height:1.3}
 .col-count{font-size:11px;background:#fff;border-radius:10px;padding:1px 7px;color:#6B6B68;border:1px solid #D0CCC6;flex-shrink:0}
+.badge-cash{background:#F1EFE8;color:#444441}
+.badge-rga{background:#FAEEDA;color:#633806}
+.badge-scnonga{background:#E1F5EE;color:#085041}
+.badge-scga{background:#EEEDFE;color:#3C3489}
 .col-submitted .col-label{color:#185FA5}.col-pending .col-label{color:#854F0B}
 .col-review .col-label{color:#7F77DD}.col-monitoring .col-label{color:#1D9E75}
 .col-approved .col-label{color:#3B6D11}.col-preop .col-label{color:#993556}
@@ -181,7 +185,7 @@ hr{border:none;border-top:1px solid #F0EDE8;margin:12px 0}
 
   <div id="allView">
     <div class="filters">
-      <select id="filterType"><option value="">All types</option><option>Standard</option><option>GA</option></select>
+      <select id="filterType"><option value="">All types</option><option>Regular (Cash)</option><option>Regular GA</option><option>SuperCare Non-GA</option><option>SuperCare GA</option></select>
       <select id="filterStatus"><option value="">All statuses</option><option>Application Submitted</option><option>Documents Pending</option><option>Under Review</option><option>Monitoring</option><option>Approved</option><option>Pre-Op Surgery</option><option>Rejected</option><option>Treatment Booked</option></select>
       <select id="filterWatcher"><option value="">All watchers</option></select>
     </div>
@@ -221,11 +225,48 @@ hr{border:none;border-top:1px solid #F0EDE8;margin:12px 0}
 <script>
 const SUPA_URL='https://innorhcqswvgiruyrzwn.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlubm9yaGNxc3d2Z2lydXlyenduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NzM5NDMsImV4cCI6MjA4OTQ0OTk0M30.VoLlbqXAS-oRw2H7JzbzMqImaZos1jTGbXlQzWQHcy4';
-const {createClient}=supabase;
-const db=createClient(SUPA_URL,SUPA_KEY);
+let db;
+function initDB(){
+  try{
+    const lib=window.supabase||window.Supabase;
+    if(!lib||!lib.createClient){throw new Error('Supabase library not loaded');}
+    db=lib.createClient(SUPA_URL,SUPA_KEY);
+    console.log('Supabase client OK');
+    return true;
+  }catch(e){
+    setSyncBar('error','Init error: '+(e.message||String(e)));
+    console.error('initDB error:',e);
+    return false;
+  }
+}
 
 // ── SOP TASKS ──────────────────────────────────────────────────────────────
-const T_STD=[
+// ── TASK DEFINITIONS ──────────────────────────────────────────────────────
+
+// Regular (Cash) — basic treatment, no SuperCare, no GA
+const T_CASH=[
+  {id:'c1',title:'Confirm patient & treatment plan',owner:'Receptionist',checks:['Confirm patient details in Corepractice','Confirm treatment plan and total cost with patient','Confirm payment method: cash / card / payment plan','Book treatment appointment in Corepractice']},
+  {id:'c2',title:'Confirm appointment & pre-treatment',owner:'Receptionist',checks:['Send appointment confirmation to patient','Confirm any pre-treatment instructions','Confirm deposit or full payment received if applicable']},
+  {id:'c3',title:'Complete treatment & close file',owner:'Receptionist',checks:['Confirm treatment completed','Process final payment in Corepractice','Update patient file with treatment notes','Send post-treatment care instructions to patient']},
+];
+
+// Regular GA — GA booking + pre-op clearance (no SuperCare)
+const T_REGULAR_GA=[
+  {id:'rg1',title:'Confirm patient & GA treatment plan',owner:'Receptionist',checks:['Confirm patient details in Corepractice','Confirm GA treatment plan and total cost','Confirm patient understands GA procedure requirements','Book GA procedure date']},
+  {id:'rg2',title:'Collect $1,000 deposit & GP summary form',owner:'Receptionist',checks:['Collect $1,000 deposit from patient in CorePractice','Provide patient with GP Summary form to complete and sign']},
+  {id:'rg3',title:'Email GP summary request',owner:'Receptionist',checks:['Email signed GP Summary Request to patient\'s GP','CC Izza on the GP email']},
+  {id:'rg4',title:'Issue blood test slip',owner:'Receptionist',checks:['Confirm if blood test is required (procedure >4hrs OR patient >50yrs)','Issue blood test slip to patient if applicable']},
+  {id:'rg5',title:'Enter patient into NAAS spreadsheet',owner:'Receptionist',checks:['Enter patient name into NAAS Spreadsheet','Add contact number and email (no Yahoo addresses)','Add length of procedure','Add procedure date']},
+  {id:'rg6',title:'GP health summary follow-up',owner:'Izza',checks:['Follow up with GP via email and phone to obtain health summary','Forward health summary to NAAS within 48 hours of receipt','Update NAAS Spreadsheet to reflect health summary received and forwarded']},
+  {id:'rg7',title:'NAAS medical history link',owner:'Izza',checks:['Confirm NAAS has sent medical history link to patient (Column M)','Check patient has completed the NAAS medical history link (Column N)','If not completed within 1 week: send SMS reminder via CorePractice','If not completed within 1 week: send email reminder to patient','If still not completed: alert Dr. Diluni and Front Desk to call patient']},
+  {id:'rg8',title:'Blood test follow-up',owner:'Izza',checks:['Check Column Q of NAAS Spreadsheet to confirm blood test is completed','If not done: send patient SMS reminder via CorePractice','If not done: send patient email reminder','If not done: set follow-up task for Front Desk to call patient']},
+  {id:'rg9',title:'Additional tests & clearance',owner:'Izza',checks:['Check Column U of NAAS Spreadsheet for any additional tests required','If additional tests required: confirm with NAAS when tests are booked','After all tests completed: follow up with NAAS for final clearance (Columns W and X)']},
+  {id:'rg10',title:'Fit for surgery confirmation',owner:'Izza',checks:['Once NAAS confirms fit for surgery: email confirmation to Reception','Include any special pre-operative instructions from Column V','In CorePractice: add code "Fit for Surgery" to patient file','Add all special pre-operative instructions from Column V into patient file notes']},
+  {id:'rg11',title:'Confirm GA booking & pre-op instructions',owner:'Receptionist',checks:['Confirm hospital and anaesthetist availability','Confirm GA surgery date with patient','Send pre-operative instructions to patient','Book appointment in Corepractice']},
+];
+
+// SuperCare Non-GA — SuperCare application only (no GA)
+const T_SC_NONGA=[
   {id:'s1',title:'Confirm patient eligibility',owner:'Receptionist',checks:['Confirm patient cannot self-fund treatment','Confirm patient interest in SuperCare','Explain the SuperCare process and 4–6 week timeline','Confirm and verify patient contact details']},
   {id:'s2',title:'Collect required documents',owner:'Receptionist',checks:['Export itemized treatment plan PDF from Corepractice','Obtain doctor support letter for ATO','Confirm treatment value matches across all documents','Confirm patient details correct on all documents']},
   {id:'s3',title:'Submit SuperCare referral',owner:'Receptionist',checks:['Log in to SuperCare portal','Enter all applicant details accurately','Upload itemized treatment plan PDF','Upload doctor support letter','Review all details before submitting','Submit form and save confirmation reference number']},
@@ -235,27 +276,123 @@ const T_STD=[
   {id:'s7',title:'Monitor application status',owner:'TC',checks:['Review Super board every week','Check email for updates from SuperCare','Contact SuperCare if no update after 3 weeks','Update patient board status in MS Teams','Communicate status updates to patient']},
   {id:'s8',title:'Book treatment after approval',owner:'Receptionist',checks:['Confirm SuperCare approval and amount','Call patient within 24 hours of approval','Book treatment appointment in Corepractice','Confirm payment via SuperCare','Update MS Teams board to: Treatment Booked']},
 ];
-const T_GA=[
-  {id:'g1',title:'Confirm patient eligibility (GA)',owner:'Receptionist',checks:['Confirm patient cannot self-fund treatment','Confirm patient interest in SuperCare','Confirm procedure requires General Anesthesia','Verify patient contact details','Inform patient of extended GA documentation requirements']},
-  {id:'g2',title:'Confirm GA treatment plan',owner:'TC',checks:['Dentist confirms GA is medically required','Confirm treatment plan includes all procedure codes','Confirm hospital fees are included','Confirm anesthetist fee estimate is included','Export and save itemized treatment plan PDF']},
-  {id:'g3',title:'Collect required GA documents',owner:'Receptionist',checks:['Collect itemized treatment plan PDF','Obtain doctor support letter for ATO','Obtain GA medical necessity statement from Dentist','Collect hospital quote','Collect anesthetist quote','Confirm all documents are complete']},
-  {id:'g4',title:'Submit SuperCare referral (GA)',owner:'Receptionist',checks:['Log in to SuperCare portal','Enter all patient details accurately','Upload itemized treatment plan','Upload doctor support letter','Upload GA medical necessity documentation','Upload hospital and/or anesthetist quotes','Review all details before submitting','Submit referral and save confirmation reference number']},
-  {id:'g5',title:'Update patient record (GA)',owner:'Receptionist',checks:['Add note: "SuperCare — GA case — Payable by clinic payment"','Attach all submitted documents to patient file','Record and confirm submission date']},
-  {id:'g6',title:'Add to SuperCare tracking board',owner:'Receptionist',checks:['Open MS Teams — Early Release of Super channel','Create new patient card','Add patient name, treatment value, submission date','Add tag: GA Case','Set status to: Application Submitted']},
-  {id:'g7',title:'Create follow-up task (GA)',owner:'Receptionist',checks:['Create new task in Corepractice','Assign to Treatment Coordinator','Set due date to +14 days from submission','Attach all relevant documents','Include SuperCare confirmation reference in notes']},
-  {id:'g8',title:'Monitor application status (GA)',owner:'TC',checks:['Check application progress weekly on MS Teams','Monitor emails from SuperCare','Contact SuperCare if no update after 3 weeks','Update patient board status in MS Teams','Communicate status to patient as needed']},
-  {id:'g9',title:'Schedule hospital & GA booking',owner:'TC',checks:['Confirm SuperCare approval amount','Contact hospital booking coordinator','Confirm anesthetist availability','Confirm surgery duration with clinical team','Document all confirmed details']},
-  {id:'g10',title:'Book patient treatment (GA)',owner:'Receptionist',checks:['Contact patient within 24 hours of approval','Confirm GA surgery date with patient','Send pre-operative instructions to patient','Confirm payment via SuperCare','Book appointment in Corepractice','Update MS Teams board to: Treatment Booked']},
-  {id:'ga1',title:'Phase A — Deposit & GP summary form',owner:'Receptionist',checks:['Collect $1,000 deposit from patient in CorePractice','Provide patient with GP Summary form to complete and sign']},
-  {id:'ga2',title:'Phase A — Email GP summary request',owner:'Receptionist',checks:['Email signed GP Summary Request to patient\'s GP','CC Izza on the GP email']},
-  {id:'ga3',title:'Phase A — Issue blood test slip',owner:'Receptionist',checks:['Confirm if blood test is required (procedure >4hrs OR patient >50yrs)','Issue blood test slip to patient if applicable']},
-  {id:'ga4',title:'Phase A — Enter patient into NAAS spreadsheet',owner:'Receptionist',checks:['Enter patient name into NAAS Spreadsheet','Add contact number and email (no Yahoo addresses)','Add length of procedure','Add procedure date']},
-  {id:'ga5',title:'Phase B — GP health summary follow-up',owner:'Izza',checks:['Follow up with GP via email and phone to obtain health summary','Forward health summary to NAAS within 48 hours of receipt','Update NAAS Spreadsheet to reflect health summary received and forwarded']},
-  {id:'ga6',title:'Phase C — NAAS medical history link',owner:'Izza',checks:['Confirm NAAS has sent medical history link to patient (Column M)','Check patient has completed the NAAS medical history link (Column N)','If not completed within 1 week: send SMS reminder via CorePractice','If not completed within 1 week: send email reminder to patient','If still not completed: alert Dr. Diluni and Front Desk to call patient']},
-  {id:'ga7',title:'Phase D — Blood test follow-up',owner:'Izza',checks:['Check Column Q of NAAS Spreadsheet to confirm blood test is completed','If not done: send patient SMS reminder via CorePractice','If not done: send patient email reminder','If not done: set follow-up task for Front Desk to call patient']},
-  {id:'ga8',title:'Phase E — Additional tests & clearance',owner:'Izza',checks:['Check Column U of NAAS Spreadsheet for any additional tests required','If additional tests required: confirm with NAAS when tests are booked','After all tests completed: follow up with NAAS for final clearance (Columns W and X)']},
-  {id:'ga9',title:'Phase E — Fit for surgery confirmation',owner:'Izza',checks:['Once NAAS confirms fit for surgery: email confirmation to Reception','Include any special pre-operative instructions from Column V','In CorePractice: add code "Fit for Surgery" to patient file','Add all special pre-operative instructions from Column V into patient file notes']},
+
+// SuperCare GA — SuperCare + GA + Pre-Op clearance
+const T_SC_GA=[
+  // SuperCare application tasks (same as Non-GA but GA-specific)
+  {id:'sg1',title:'Confirm patient eligibility (GA)',owner:'Receptionist',checks:['Confirm patient cannot self-fund treatment','Confirm patient interest in SuperCare','Confirm procedure requires General Anesthesia','Verify patient contact details','Inform patient of extended GA documentation requirements']},
+  {id:'sg2',title:'Confirm GA treatment plan',owner:'TC',checks:['Dentist confirms GA is medically required','Confirm treatment plan includes all procedure codes','Confirm hospital fees are included','Confirm anesthetist fee estimate is included','Export and save itemized treatment plan PDF']},
+  {id:'sg3',title:'Collect required GA documents',owner:'Receptionist',checks:['Collect itemized treatment plan PDF','Obtain doctor support letter for ATO','Obtain GA medical necessity statement from Dentist','Collect hospital quote','Collect anesthetist quote','Confirm all documents are complete']},
+  {id:'sg4',title:'Submit SuperCare referral (GA)',owner:'Receptionist',checks:['Log in to SuperCare portal','Enter all patient details accurately','Upload itemized treatment plan','Upload doctor support letter','Upload GA medical necessity documentation','Upload hospital and/or anesthetist quotes','Review all details before submitting','Submit referral and save confirmation reference number']},
+  {id:'sg5',title:'Update patient record (GA)',owner:'Receptionist',checks:['Add note: "SuperCare — GA case — Payable by clinic payment"','Attach all submitted documents to patient file','Record and confirm submission date']},
+  {id:'sg6',title:'Add to SuperCare tracking board',owner:'Receptionist',checks:['Open MS Teams — Early Release of Super channel','Create new patient card','Add patient name, treatment value, submission date','Add tag: GA Case','Set status to: Application Submitted']},
+  {id:'sg7',title:'Create follow-up task (GA)',owner:'Receptionist',checks:['Create new task in Corepractice','Assign to Treatment Coordinator','Set due date to +14 days from submission','Attach all relevant documents','Include SuperCare confirmation reference in notes']},
+  {id:'sg8',title:'Monitor application status (GA)',owner:'TC',checks:['Check application progress weekly on MS Teams','Monitor emails from SuperCare','Contact SuperCare if no update after 3 weeks','Update patient board status in MS Teams','Communicate status to patient as needed']},
+  {id:'sg9',title:'Schedule hospital & GA booking',owner:'TC',checks:['Confirm SuperCare approval amount','Contact hospital booking coordinator','Confirm anesthetist availability','Confirm surgery duration with clinical team','Document all confirmed details']},
+  {id:'sg10',title:'Book patient treatment (GA)',owner:'Receptionist',checks:['Contact patient within 24 hours of approval','Confirm GA surgery date with patient','Send pre-operative instructions to patient','Confirm payment via SuperCare','Book appointment in Corepractice','Update MS Teams board to: Treatment Booked']},
+  // Pre-Op clearance (unlocks immediately on submit — runs simultaneously)
+  {id:'sg11',title:'Phase A — Deposit & GP summary form',owner:'Receptionist',checks:['Collect $1,000 deposit from patient in CorePractice','Provide patient with GP Summary form to complete and sign']},
+  {id:'sg12',title:'Phase A — Email GP summary request',owner:'Receptionist',checks:['Email signed GP Summary Request to patient\'s GP','CC Izza on the GP email']},
+  {id:'sg13',title:'Phase A — Issue blood test slip',owner:'Receptionist',checks:['Confirm if blood test is required (procedure >4hrs OR patient >50yrs)','Issue blood test slip to patient if applicable']},
+  {id:'sg14',title:'Phase A — Enter patient into NAAS spreadsheet',owner:'Receptionist',checks:['Enter patient name into NAAS Spreadsheet','Add contact number and email (no Yahoo addresses)','Add length of procedure','Add procedure date']},
+  {id:'sg15',title:'Phase B — GP health summary follow-up',owner:'Izza',checks:['Follow up with GP via email and phone to obtain health summary','Forward health summary to NAAS within 48 hours of receipt','Update NAAS Spreadsheet to reflect health summary received and forwarded']},
+  {id:'sg16',title:'Phase C — NAAS medical history link',owner:'Izza',checks:['Confirm NAAS has sent medical history link to patient (Column M)','Check patient has completed the NAAS medical history link (Column N)','If not completed within 1 week: send SMS reminder via CorePractice','If not completed within 1 week: send email reminder to patient','If still not completed: alert Dr. Diluni and Front Desk to call patient']},
+  {id:'sg17',title:'Phase D — Blood test follow-up',owner:'Izza',checks:['Check Column Q of NAAS Spreadsheet to confirm blood test is completed','If not done: send patient SMS reminder via CorePractice','If not done: send patient email reminder','If not done: set follow-up task for Front Desk to call patient']},
+  {id:'sg18',title:'Phase E — Additional tests & clearance',owner:'Izza',checks:['Check Column U of NAAS Spreadsheet for any additional tests required','If additional tests required: confirm with NAAS when tests are booked','After all tests completed: follow up with NAAS for final clearance (Columns W and X)']},
+  {id:'sg19',title:'Phase E — Fit for surgery confirmation',owner:'Izza',checks:['Once NAAS confirms fit for surgery: email confirmation to Reception','Include any special pre-operative instructions from Column V','In CorePractice: add code "Fit for Surgery" to patient file','Add all special pre-operative instructions from Column V into patient file notes']},
 ];
+
+// ── PATIENT TYPE HELPERS ───────────────────────────────────────────────────
+const PATIENT_TYPES=['Regular (Cash)','Regular GA','SuperCare Non-GA','SuperCare GA'];
+
+function getTasks(p){
+  if(p.type==='Regular GA')return T_REGULAR_GA;
+  if(p.type==='SuperCare Non-GA')return T_SC_NONGA;
+  if(p.type==='SuperCare GA')return T_SC_GA;
+  return T_CASH; // Regular (Cash)
+}
+
+function getTypeBadgeClass(type){
+  if(type==='Regular GA')return'badge-rga';
+  if(type==='SuperCare Non-GA')return'badge-scnonga';
+  if(type==='SuperCare GA')return'badge-scga';
+  return'badge-cash';
+}
+
+// ── STAGE OWNERSHIP MAPS ───────────────────────────────────────────────────
+// Each task index maps to the stage it unlocks at
+// 'Application Submitted' = unlocks immediately
+
+const TASK_STAGE_CASH={
+  0:'Application Submitted',1:'Application Submitted',2:'Treatment Booked'
+};
+
+// Regular GA: all tasks (including pre-op) unlock immediately
+const TASK_STAGE_REGULAR_GA={
+  0:'Application Submitted',1:'Application Submitted',2:'Application Submitted',
+  3:'Application Submitted',4:'Application Submitted',5:'Application Submitted',
+  6:'Application Submitted',7:'Application Submitted',8:'Application Submitted',
+  9:'Application Submitted',10:'Application Submitted'
+};
+
+const TASK_STAGE_SC_NONGA={
+  0:'Application Submitted',1:'Application Submitted',2:'Application Submitted',
+  3:'Application Submitted',4:'Application Submitted',5:'Application Submitted',
+  6:'Monitoring',7:'Approved'
+};
+
+// SuperCare GA: SuperCare tasks unlock by stage, Pre-Op (10-18) unlock immediately
+const TASK_STAGE_SC_GA={
+  0:'Application Submitted',1:'Application Submitted',2:'Application Submitted',
+  3:'Application Submitted',4:'Application Submitted',5:'Application Submitted',
+  6:'Application Submitted',7:'Monitoring',8:'Approved',9:'Approved',
+  // Pre-Op clearance — all unlock immediately
+  10:'Application Submitted',11:'Application Submitted',12:'Application Submitted',
+  13:'Application Submitted',14:'Application Submitted',15:'Application Submitted',
+  16:'Application Submitted',17:'Application Submitted',18:'Application Submitted'
+};
+
+// ── STAGE GATES ────────────────────────────────────────────────────────────
+// What tasks must be done BEFORE entering each stage
+
+const STAGE_GATE_CASH={
+  'Treatment Booked':[0,1],
+};
+
+const STAGE_GATE_REGULAR_GA={
+  'Treatment Booked':[0,1,2,3,4,5,6,7,8,9,10],
+};
+
+const STAGE_GATE_SC_NONGA={
+  'Documents Pending':[0],
+  'Under Review':[0,1,2,3,4,5],
+  'Monitoring':[0,1,2,3,4,5],
+  'Approved':[0,1,2,3,4,5,6],
+  'Treatment Booked':[0,1,2,3,4,5,6,7],
+};
+
+const STAGE_GATE_SC_GA={
+  'Documents Pending':[0],
+  'Under Review':[0,1,2,3,4,5,6],
+  'Monitoring':[0,1,2,3,4,5,6],
+  'Approved':[0,1,2,3,4,5,6,7],
+  'Pre-Op Surgery':[0,1,2,3,4,5,6,7],
+  'Treatment Booked':[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18],
+};
+
+function getGate(p){
+  if(p.type==='Regular GA')return STAGE_GATE_REGULAR_GA;
+  if(p.type==='SuperCare Non-GA')return STAGE_GATE_SC_NONGA;
+  if(p.type==='SuperCare GA')return STAGE_GATE_SC_GA;
+  return STAGE_GATE_CASH;
+}
+
+function getTaskStageMap(p){
+  if(p.type==='Regular GA')return TASK_STAGE_REGULAR_GA;
+  if(p.type==='SuperCare Non-GA')return TASK_STAGE_SC_NONGA;
+  if(p.type==='SuperCare GA')return TASK_STAGE_SC_GA;
+  return TASK_STAGE_CASH;
+}
 
 function getTasks(p){return p.type==='GA'?T_GA:T_STD;}
 
@@ -264,6 +401,15 @@ const TASK_STAGE_STD={0:'Application Submitted',1:'Application Submitted',2:'App
 const TASK_STAGE_GA={0:'Application Submitted',1:'Application Submitted',2:'Application Submitted',3:'Application Submitted',4:'Application Submitted',5:'Application Submitted',6:'Application Submitted',7:'Monitoring',8:'Approved',9:'Approved',10:'Pre-Op Surgery',11:'Pre-Op Surgery',12:'Pre-Op Surgery',13:'Pre-Op Surgery',14:'Pre-Op Surgery',15:'Pre-Op Surgery',16:'Pre-Op Surgery',17:'Pre-Op Surgery',18:'Pre-Op Surgery'};
 
 const STATUS_ORDER=['Application Submitted','Documents Pending','Under Review','Monitoring','Approved','Pre-Op Surgery','Rejected','Treatment Booked'];
+
+// Which status options are relevant per patient type
+function getStatusOptions(p){
+  if(p.type==='Regular (Cash)')return['Application Submitted','Treatment Booked','Rejected'];
+  if(p.type==='Regular GA')return['Application Submitted','Pre-Op Surgery','Treatment Booked','Rejected'];
+  if(p.type==='SuperCare Non-GA')return['Application Submitted','Documents Pending','Under Review','Monitoring','Approved','Rejected','Treatment Booked'];
+  // SuperCare GA
+  return['Application Submitted','Documents Pending','Under Review','Monitoring','Approved','Pre-Op Surgery','Rejected','Treatment Booked'];
+}
 const STATUS_COLS=[
   {key:'Application Submitted',cls:'col-submitted'},
   {key:'Documents Pending',cls:'col-pending'},
@@ -336,9 +482,9 @@ function allWatchers(p){const ids=[...new Set((p._watchers||[]).map(w=>w.user_id
 
 function isTaskUnlocked(p,ti){
   const curIdx=STATUS_ORDER.indexOf(p.status);
-  const tsm=p.type==='GA'?TASK_STAGE_GA:TASK_STAGE_STD;
+  const tsm=getTaskStageMap(p);
   const taskStage=tsm[ti];
-  if(!taskStage)return true;
+  if(taskStage===undefined)return true;
   return STATUS_ORDER.indexOf(taskStage)<=curIdx;
 }
 
@@ -346,13 +492,16 @@ function canMove(p,newStatus){
   const curIdx=STATUS_ORDER.indexOf(p.status);
   const newIdx=STATUS_ORDER.indexOf(newStatus);
   if(newIdx<=curIdx||newStatus==='Rejected')return{ok:true};
+  // Check if this status is valid for this patient type
+  const validStatuses=getStatusOptions(p);
+  if(!validStatuses.includes(newStatus))return{ok:false,names:[`• "${newStatus}" is not applicable for ${p.type} patients`]};
   const gate=getGate(p);
   const required=gate[newStatus];
-  if(!required)return{ok:true};
+  if(!required||!required.length)return{ok:true};
   const tasks=getTasks(p);
-  const incomplete=required.filter(ti=>!getChecks(p).filter(c=>c.task_index===ti&&c.is_done).length===tasks[ti].checks.length).filter(ti=>{
+  const incomplete=required.filter(ti=>{
     const done=getChecks(p).filter(c=>c.task_index===ti&&c.is_done).length;
-    return done<tasks[ti].checks.length;
+    return tasks[ti]&&done<tasks[ti].checks.length;
   });
   if(!incomplete.length)return{ok:true};
   const names=incomplete.map(ti=>tasks[ti]?`• ${tasks[ti].title}`:'').filter(Boolean);
@@ -394,9 +543,9 @@ async function loadAll(){
     setSyncBar('ok',`Connected · ${patients.length} patient${patients.length!==1?'s':''} · Last synced ${nowStr()}`);
     render();
   }catch(err){
-    const msg=err&&err.message?err.message:JSON.stringify(err);
+    const msg=err&&err.message?err.message:JSON.stringify(err,Object.getOwnPropertyNames(err));
     setSyncBar('error','Database error — '+msg);
-    console.error('loadAll error:',err);
+    console.error('loadAll error full:',JSON.stringify(err,Object.getOwnPropertyNames(err)));
   }
 }
 
@@ -464,7 +613,7 @@ function renderKanban(){
       col.innerHTML+=`<div class="card" onclick="openDetail('${p.id}')">
         <div class="card-name">${p.name}</div>
         <div class="card-meta">
-          <span class="badge ${p.type==='GA'?'badge-ga':'badge-std'}">${p.type}</span>
+          <span class="badge ${getTypeBadgeClass(p.type)}">${p.type}</span>
           <span>$${(p.value||0).toLocaleString()}</span>
           ${od?'<span class="badge badge-overdue">Overdue</span>':''}
         </div>
@@ -483,7 +632,7 @@ function renderList(){
     const pc=pct(p),od=isOD(p.follow_up)&&!['Treatment Booked','Rejected'].includes(p.status),ws=allWatchers(p);
     const tr=document.createElement('tr');tr.style.cursor='pointer';tr.onclick=()=>openDetail(p.id);
     tr.innerHTML=`<td><strong>${p.name}</strong>${p.ref?`<div style="font-size:10px;color:#6B6B68">${p.ref}</div>`:''}</td>
-      <td><span class="badge ${p.type==='GA'?'badge-ga':'badge-std'}">${p.type}</span></td>
+      <td><span class="badge ${getTypeBadgeClass(p.type)}">${p.type}</span></td>
       <td>$${(p.value||0).toLocaleString()}</td><td>${p.status}</td>
       <td><div style="display:flex;gap:3px">${ws.map(u=>av(u)).join('')}</div></td>
       <td style="color:${od?'#A32D2D':'inherit'}">${fd(p.follow_up)}${od?' ⚑':''}</td>
@@ -518,7 +667,7 @@ function renderDetail(p){
   const autoOpenTi=tasks.findIndex((_,ti)=>isTaskUnlocked(p,ti)&&getChecks(p).filter(c=>c.task_index===ti&&c.is_done).length<tasks[ti].checks.length);
   const gate=getGate(p);
   const curIdx=STATUS_ORDER.indexOf(p.status);
-  const nextStatus=STATUS_ORDER.find((s,si)=>si>curIdx&&s!=='Rejected');
+  const nextStatus=getStatusOptions(p).find(s=>STATUS_ORDER.indexOf(s)>curIdx&&s!=='Rejected');
   const required=nextStatus?gate[nextStatus]||[]:[];
   const allCurrentDone=required.length?required.every(ti=>getChecks(p).filter(c=>c.task_index===ti&&c.is_done).length>=tasks[ti].checks.length):false;
 
@@ -616,7 +765,7 @@ function renderDetail(p){
       <div>
         <div style="font-size:16px;font-weight:700">${p.name}</div>
         <div style="margin-top:5px;display:flex;gap:6px;flex-wrap:wrap">
-          <span class="badge ${p.type==='GA'?'badge-ga':'badge-std'}">${p.type} pathway</span>
+          <span class="badge ${getTypeBadgeClass(p.type)}">${p.type} pathway</span>
           <span class="badge" style="background:#F0EDE8;color:#6B6B68">${p.status}</span>
         </div>
       </div>
@@ -631,7 +780,7 @@ function renderDetail(p){
     ${p.notes?`<div style="font-size:12px;color:#6B6B68;margin-bottom:.75rem;padding:8px 12px;background:#F7F3EE;border-radius:6px">${p.notes}</div>`:''}
     <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
       <select id="detailStatus" style="font-size:12px;height:30px" onchange="updStatus('${p.id}',this.value)">
-        ${STATUS_ORDER.map(s=>{const locked=!canMove(p,s).ok;return`<option value="${s}"${s===p.status?' selected':''}>${locked?'🔒 ':''}${s}</option>`;}).join('')}
+        ${getStatusOptions(p).map(s=>{const locked=!canMove(p,s).ok;return`<option value="${s}"${s===p.status?' selected':''}>${locked?'🔒 ':''}${s}</option>`;}).join('')}
       </select>
       <button class="btn btn-sm btn-blue" onclick="openEdit('${p.id}')">Edit</button>
       <button class="btn btn-sm btn-notify" onclick="openNotify('${p.id}')">🔔 Notify</button>
@@ -783,7 +932,7 @@ function openAdd(){
     <div class="modal-title">Add new patient</div>
     <div class="form-row-2">
       <div class="form-group"><label>Patient name</label><input id="fn" placeholder="Full name"></div>
-      <div class="form-group"><label>Pathway</label><select id="ft"><option value="Standard">Standard</option><option value="GA">GA</option></select></div>
+      <div class="form-group"><label>Patient type</label><select id="ft"><option value="Regular (Cash)">Regular (Cash)</option><option value="Regular GA">Regular GA</option><option value="SuperCare Non-GA">SuperCare Non-GA</option><option value="SuperCare GA">SuperCare GA</option></select></div>
     </div>
     <div class="form-row-2">
       <div class="form-group"><label>Treatment value ($)</label><input id="fv" type="number" placeholder="0"></div>
@@ -826,7 +975,7 @@ async function openEdit(pid){
     <div class="modal-title">Edit — ${p.name}</div>
     <div class="form-row-2">
       <div class="form-group"><label>Patient name</label><input id="fn" value="${p.name}"></div>
-      <div class="form-group"><label>Pathway</label><select id="ft"><option value="Standard"${p.type==='Standard'?' selected':''}>Standard</option><option value="GA"${p.type==='GA'?' selected':''}>GA</option></select></div>
+      <div class="form-group"><label>Patient type</label><select id="ft">${['Regular (Cash)','Regular GA','SuperCare Non-GA','SuperCare GA'].map(t=>`<option value="${t}"${p.type===t?' selected':''} >${t}</option>`).join('')}</select></div>
     </div>
     <div class="form-row-2">
       <div class="form-group"><label>Treatment value ($)</label><input id="fv" type="number" value="${p.value||0}"></div>
@@ -937,7 +1086,7 @@ const EMAILS=[
   {label:'2-week follow-up',subject:'SuperCare Application Update',body:p=>`Dear ${p.name},\n\nFollowing up on your application submitted ${fd(p.submitted)} (Ref: ${p.ref||'[pending]'}).\n\nYour application is currently under review. We will notify you of any updates.\n\nWarm regards,\nMulgrave Dental Group`},
   {label:'Approved',subject:'Congratulations on Your Early Release of Superannuation Approval',body:p=>`Dear ${p.name},\n\nCongratulations on your early release of superannuation approval. We have been notified that the ATO has granted you a lump sum approval to commence your dental treatment. We are very excited to hear this news and we are very much looking forward to beginning your treatment journey.\n\nWe would like to now organise an appointment with you to go through your treatment plan, consent forms and answer any questions you may have prior to your treatment appointment(s). Please contact us on 03 9562 5156.\n\nWe have been advised that once you submit your approval letter to your superfund — along with the withdrawal form — you should have the funds within 5–10 working days.\n\nPlease remember that if you need any assistance whatsoever, to contact us on 03 9562 5156 or your My SuperCare Consultant.\n\nWhen the funds are received by you, we request that the approved amount is deposited as a lump sum, so we can then alert My SuperCare who can then report to the ATO as per the release guidelines and legislation. Please note that for ATO Compliance, the released funds must be solely utilised to complete your Dental Treatment Plan within the timeframe as advised by your Dentist. Please note failure to do so will result in a lodgement of Misappropriation of Funds to the ATO.\n\nOur bank details for transfer of payments are as follows:\n\n  Account Name:   Peretrust\n  BSB:            083 269\n  Account No:     57 298 1406\n  Amount:         $${(p.value||0).toLocaleString()}\n\nOnce the funds have been received, please forward the remittance via email or contact us on 03 9562 5156.\n\nPlease be sure to include your name in the description.\n\nWe again congratulate you on your approval and look forward to rebuilding your smile.\n\nWith kind regards,\nMulgrave Dental Group`},
   {label:'Not approved',subject:'SuperCare Application Outcome',body:p=>`Dear ${p.name},\n\nUnfortunately your SuperCare application (Ref: ${p.ref||'[pending]'}) has not been approved at this time.\n\nPlease contact our team to discuss alternative payment options.\n\nWarm regards,\nMulgrave Dental Group`},
-  {label:'Treatment booked',subject:'Your Treatment Appointment Is Confirmed',body:p=>`Dear ${p.name},\n\nYour treatment appointment has been confirmed. Payment will be processed via your approved SuperCare funding.\n${p.type==='GA'?'\nPlease follow all pre-operative instructions provided.\n':''}\nWarm regards,\nMulgrave Dental Group`},
+  {label:'Treatment booked',subject:'Your Treatment Appointment Is Confirmed',body:p=>`Dear ${p.name},\n\nYour treatment appointment has been confirmed.${['SuperCare Non-GA','SuperCare GA'].includes(p.type)?' Payment will be processed via your approved SuperCare funding.':''}\n${['Regular GA','SuperCare GA'].includes(p.type)?'\nPlease follow all pre-operative instructions provided.\n':''}\nWarm regards,\nMulgrave Dental Group`},
   {label:'Chase SuperCare',subject:`URGENT — Status Update Required`,body:p=>`Hi Jeremiah,\n\nHope you're well! I'm just chasing an update on the below patient — we're getting a little anxious on our end and would really appreciate knowing where things are at.\n\nPatient: ${p.name}\nRef: ${p.ref||'[pending]'}\nSubmission date: ${fd(p.submitted)}\nTreatment value: $${(p.value||0).toLocaleString()}\nCurrent status: ${p.status}\n\nCould you please let us know:\n  - What stage is the application currently at?\n  - Are there any outstanding requirements from our end?\n  - What is the expected timeframe for a decision?\n\nThe patient is understandably eager to get started on their treatment, so any update — even a quick one — would be hugely appreciated.\n\nThanks so much, Jeremiah — we really appreciate your help on this one!\n\nWarm regards,\nIzza\nMulgrave Dental Group\n03 9562 5156`},
 ];
 
@@ -1003,7 +1152,7 @@ function renderAtm(){
     return`<div class="atm-task-card ${type}">
       <div class="atm-task-info">
         <div class="atm-task-title">${t.title}</div>
-        <div class="atm-task-patient"><span class="badge ${p.type==='GA'?'badge-ga':'badge-std'}" style="margin-right:5px">${p.type}</span>${p.name} · $${(p.value||0).toLocaleString()} · ${p.status}</div>
+        <div class="atm-task-patient"><span class="badge ${getTypeBadgeClass(p.type)}" style="margin-right:5px">${p.type}</span>${p.name} · $${(p.value||0).toLocaleString()} · ${p.status}</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span style="font-size:10px;color:#6B6B68">${done}/${total}</span>
           <div class="progress-bar" style="width:80px;display:inline-block;vertical-align:middle"><div class="progress-fill" style="width:${pc}%"></div></div>
@@ -1119,18 +1268,27 @@ document.addEventListener('click',e=>{const p=document.getElementById('notifPane
 // ── INIT ────────────────────────────────────────────────────────────────────
 // Test connection first
 async function testAndLoad(){
+  // Wait up to 5s for library to load
+  let attempts=0;
+  while(attempts<20){
+    if(initDB()&&db)break;
+    await new Promise(r=>setTimeout(r,250));
+    attempts++;
+  }
+  if(!db){setSyncBar('error','Could not load Supabase library after 5s. Check your internet connection.');return;}
   try{
     const {data,error}=await db.from('sc_users').select('count').limit(1);
     if(error){
-      const detail=error.message||error.details||error.hint||JSON.stringify(error);
+      const detail=[error.message,error.details,error.hint,error.code,JSON.stringify(error)].filter(Boolean).join(' | ');
       setSyncBar('error','Connection failed: '+detail);
-      console.error('Supabase connection error:',error);
+      console.error('Supabase error object:',JSON.stringify(error));
       return;
     }
     loadAll();
   }catch(e){
-    setSyncBar('error','Connection error: '+(e.message||String(e)));
-    console.error('testAndLoad error:',e);
+    const msg=e&&e.message?e.message:JSON.stringify(e,Object.getOwnPropertyNames(e));
+    setSyncBar('error','Connection error: '+msg);
+    console.error('testAndLoad exception:',e);
   }
 }
 testAndLoad();
