@@ -107,6 +107,16 @@ hr{border:none;border-top:1px solid #F0EDE8;margin:12px 0}
 .check-actions{display:flex;align-items:center;gap:5px;flex-shrink:0}
 .ck-detail-panel{display:none;margin-top:6px;padding:8px 10px;background:#fff;border-radius:6px;border:1px solid #E8E4DF}
 .task-notes-section{margin-top:10px;border-top:1px solid #EEEBE6;padding-top:10px}
+.custom-checks-section{margin-top:6px;padding-top:8px;border-top:1px dashed #D0CCC6}
+.custom-check-item{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:#1A1A18;border-bottom:1px solid #F5F3EF}
+.custom-check-item:last-child{border-bottom:none}
+.custom-check-item.done span{text-decoration:line-through;color:#A0A09D}
+.custom-check-item input[type=checkbox]{accent-color:#185FA5;cursor:pointer;flex-shrink:0}
+.custom-check-item .del-ck{background:none;border:none;cursor:pointer;color:#D0CCC6;font-size:13px;padding:0;line-height:1;margin-left:auto;flex-shrink:0}
+.custom-check-item .del-ck:hover{color:#A32D2D}
+.add-custom-ck-row{display:flex;gap:6px;margin-top:6px}
+.add-custom-ck-row input{flex:1;font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid #D0CCC6;background:#fff;font-family:inherit;outline:none}
+.add-custom-ck-row input:focus{border-color:#185FA5}
 .task-attachments{margin-top:10px;border-top:1px solid #EEEBE6;padding-top:10px}
 .attach-head{font-size:11px;font-weight:700;color:#6B6B68;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
 .attach-list{display:flex;flex-direction:column;gap:5px;margin-bottom:8px}
@@ -532,6 +542,8 @@ async function loadAll(){
       {data:watchers,error:e4},
       {data:ckAss,error:e5},
       {data:notes,error:e6},
+      {data:attachments,error:e7},
+      {data:customCks,error:e8},
     ]=await Promise.all([
       db.from('sc_patients').select('*').order('created_at',{ascending:false}),
       db.from('sc_users').select('*').order('created_at'),
@@ -539,8 +551,10 @@ async function loadAll(){
       db.from('sc_task_watchers').select('*'),
       db.from('sc_check_assignees').select('*'),
       db.from('sc_notes').select('*').order('created_at'),
+      db.from('sc_attachments').select('*').order('created_at'),
+      db.from('sc_custom_checks').select('*').order('created_at'),
     ]);
-    const firstErr=e1||e2||e3||e4||e5||e6;
+    const firstErr=e1||e2||e3||e4||e5||e6||e7||e8;
     if(firstErr){
       const detail=firstErr.message||firstErr.details||firstErr.hint||JSON.stringify(firstErr);
       throw new Error(detail);
@@ -552,6 +566,8 @@ async function loadAll(){
       _watchers:(watchers||[]).filter(w=>w.patient_id===p.id),
       _ckAssignees:(ckAss||[]).filter(a=>a.patient_id===p.id),
       _notes:(notes||[]).filter(n=>n.patient_id===p.id),
+      _attachments:(attachments||[]).filter(a=>a.patient_id===p.id),
+      _customCks:(customCks||[]).filter(x=>x.patient_id===p.id),
     }));
     setSyncBar('ok',`Connected · ${patients.length} patient${patients.length!==1?'s':''} · Last synced ${nowStr()}`);
     render();
@@ -570,6 +586,7 @@ async function reloadPatient(pid){
     {data:ckAss},
     {data:notes},
     {data:attachments},
+    {data:customCks},
   ]=await Promise.all([
     db.from('sc_patients').select('*').eq('id',pid).single(),
     db.from('sc_task_checks').select('*').eq('patient_id',pid),
@@ -577,9 +594,10 @@ async function reloadPatient(pid){
     db.from('sc_check_assignees').select('*').eq('patient_id',pid),
     db.from('sc_notes').select('*').eq('patient_id',pid).order('created_at'),
     db.from('sc_attachments').select('*').eq('patient_id',pid).order('created_at'),
+    db.from('sc_custom_checks').select('*').eq('patient_id',pid).order('created_at'),
   ]);
   if(!p)return null;
-  const enriched={...p,_checks:checks||[],_watchers:watchers||[],_ckAssignees:ckAss||[],_notes:notes||[],_attachments:attachments||[]};
+  const enriched={...p,_checks:checks||[],_watchers:watchers||[],_ckAssignees:ckAss||[],_notes:notes||[],_attachments:attachments||[],_customCks:customCks||[]};
   const idx=patients.findIndex(x=>x.id===pid);
   if(idx>=0)patients[idx]=enriched;
   else patients.unshift(enriched);
@@ -763,6 +781,15 @@ function renderDetail(p){
             </div>`;
           }).join('')}
         </div>
+        <div class="custom-checks-section">
+          <div id="customCkList_${p.id}_${ti}">
+            ${renderCustomChecks(p,ti)}
+          </div>
+          <div class="add-custom-ck-row">
+            <input id="customCkInput_${p.id}_${ti}" type="text" placeholder="+ Add checklist item..." onkeydown="if(event.key==='Enter')addCustomCk('${p.id}',${ti})">
+            <button class="btn btn-sm" onclick="addCustomCk('${p.id}',${ti})">Add</button>
+          </div>
+        </div>
         <div class="task-attachments">
           <div class="attach-head">
             <span>📎 Attachments</span>
@@ -879,6 +906,74 @@ async function addCkAss(pid,ti,ci,sel){
 async function removeCkAss(pid,ti,ci,uid){
   await db.from('sc_check_assignees').delete().eq('patient_id',pid).eq('task_index',ti).eq('check_index',ci).eq('user_id',uid);
   const p=await reloadPatient(pid);if(p)renderDetail(p);
+}
+
+// ── CUSTOM CHECKLIST ───────────────────────────────────────────────────────
+function getCustomCks(p,ti){return(p._customCks||[]).filter(x=>x.task_index===ti).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));}
+
+function renderCustomChecks(p,ti){
+  const items=getCustomCks(p,ti);
+  if(!items.length)return'';
+  return items.map(x=>`<div class="custom-check-item${x.is_done?' done':''}" id="cck_${x.id}">
+    <input type="checkbox"${x.is_done?' checked':''} onchange="togCustomCk('${x.id}','${p.id}',${ti},this.checked)">
+    <span>${x.text}</span>
+    <button class="del-ck" onclick="delCustomCk('${x.id}','${p.id}',${ti})">×</button>
+  </div>`).join('');
+}
+
+async function addCustomCk(pid,ti){
+  const inp=document.getElementById(`customCkInput_${pid}_${ti}`);
+  if(!inp)return;
+  const txt=inp.value.trim();if(!txt)return;
+  inp.value='';inp.disabled=true;
+  const{data,error}=await db.from('sc_custom_checks').insert({patient_id:pid,task_index:ti,text:txt,is_done:false}).select().single();
+  inp.disabled=false;
+  if(error){setSyncBar('error','Failed to add item: '+error.message);return;}
+  const p=await reloadPatient(pid);
+  if(p){
+    const el=document.getElementById(`customCkList_${pid}_${ti}`);
+    if(el)el.innerHTML=renderCustomChecks(p,ti);
+    updateTaskProgress(p,ti);
+  }
+}
+
+async function togCustomCk(ckId,pid,ti,val){
+  await db.from('sc_custom_checks').update({is_done:val}).eq('id',ckId);
+  const el=document.getElementById(`cck_${ckId}`);
+  if(el)val?el.classList.add('done'):el.classList.remove('done');
+  const p=await reloadPatient(pid);
+  if(p)updateTaskProgress(p,ti);
+}
+
+async function delCustomCk(ckId,pid,ti){
+  if(!confirm('Remove this checklist item?'))return;
+  await db.from('sc_custom_checks').delete().eq('id',ckId);
+  const p=await reloadPatient(pid);
+  if(p){
+    const el=document.getElementById(`customCkList_${pid}_${ti}`);
+    if(el)el.innerHTML=renderCustomChecks(p,ti);
+    updateTaskProgress(p,ti);
+  }
+}
+
+function updateTaskProgress(p,ti){
+  const tasks=getTasks(p);if(!tasks[ti])return;
+  const sopDone=getChecks(p).filter(c=>c.task_index===ti&&c.is_done).length;
+  const customDone=getCustomCks(p,ti).filter(x=>x.is_done).length;
+  const sopTotal=tasks[ti].checks.length;
+  const customTotal=getCustomCks(p,ti).length;
+  const total=sopTotal+customTotal;
+  const done=sopDone+customDone;
+  // Update task header count
+  const progEl=document.querySelector(`#tb_${p.id}_${ti}`)?.previousElementSibling?.querySelector('.task-prog-txt');
+  if(progEl)progEl.textContent=`${done}/${total}`;
+  // Update overall progress bar
+  const allDone=doneCk(p)+customDone;
+  const allTotal=totalCk(p)+customTotal;
+  const pc=allTotal?Math.round(allDone/allTotal*100):0;
+  const mp=document.getElementById('mainProg');if(mp)mp.style.width=pc+'%';
+  const ht=document.getElementById('ckHead');if(ht)ht.textContent=`${allDone}/${allTotal} (${pc}%)`;
+  render();
 }
 
 // ── ATTACHMENTS ────────────────────────────────────────────────────────────
