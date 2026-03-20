@@ -453,9 +453,7 @@ const STATUS_COLS=[
   {key:'Offboarding',cls:'col-offboard'},
 ];
 
-const STAGE_GATE_STD={'Documents Pending':[0],'Under Review':[0,1,2,3,4,5],'Monitoring':[0,1,2,3,4,5],'Approved':[0,1,2,3,4,5,6],'Treatment Booked':[0,1,2,3,4,5,6,7]};
-const STAGE_GATE_GA={'Documents Pending':[0],'Under Review':[0,1,2,3,4,5,6],'Monitoring':[0,1,2,3,4,5,6],'Approved':[0,1,2,3,4,5,6,7],'Pre-Op Surgery':[0,1,2,3,4,5,6,7],'Treatment Booked':[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]};
-function getGate(p){return p.type==='GA'?STAGE_GATE_GA:STAGE_GATE_STD;}
+// Removed stale STAGE_GATE_STD/GA — correct gates are STAGE_GATE_CASH, STAGE_GATE_REGULAR_GA, STAGE_GATE_SC_NONGA, STAGE_GATE_SC_GA above
 
 // ── STATE ──────────────────────────────────────────────────────────────────
 let patients=[];
