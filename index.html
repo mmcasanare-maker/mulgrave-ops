@@ -532,8 +532,12 @@ function canMove(p,newStatus){
   if(!required||!required.length)return{ok:true};
   const tasks=getTasks(p);
   const incomplete=required.filter(ti=>{
-    const done=getChecks(p).filter(c=>c.task_index===ti&&c.is_done).length;
-    return tasks[ti]&&done<tasks[ti].checks.length;
+    if(!tasks[ti])return false;
+    // Only require SOP checks to be complete (custom checks are bonus)
+    const sopTotal=tasks[ti].checks.length;
+    if(sopTotal===0)return false;
+    const sopDone=getChecks(p).filter(c=>c.task_index===ti&&c.is_done).length;
+    return sopDone<sopTotal;
   });
   if(!incomplete.length)return{ok:true};
   const names=incomplete.map(ti=>tasks[ti]?`• ${tasks[ti].title}`:'').filter(Boolean);
@@ -697,7 +701,9 @@ async function openDetail(pid){
   document.getElementById('modalBox').innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:2rem;justify-content:center"><div class="spinner"></div><span style="color:#6B6B68">Loading...</span></div>`;
   const p=await reloadPatient(pid);
   if(!p){closeModal();return;}
-  renderDetail(p);
+  // Always use freshly loaded patient so canMove has correct _checks
+  const fresh=patients.find(x=>x.id===pid)||p;
+  renderDetail(fresh);
 }
 
 function renderDetail(p){
