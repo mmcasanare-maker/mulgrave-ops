@@ -512,6 +512,25 @@ function getTaskNotes(p,ti){return(p._notes||[]).filter(n=>n.task_index===ti&&n.
 function getCkNotes(p,ti,ci){return(p._notes||[]).filter(n=>n.task_index===ti&&n.check_index===ci).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))}
 function allWatchers(p){const ids=[...new Set((p._watchers||[]).map(w=>w.user_id))];return ids.map(id=>users.find(u=>u.id===id)).filter(Boolean)}
 
+function debugMove(pid){
+  const p=patients.find(x=>x.id===pid);if(!p)return;
+  const tasks=getTasks(p);
+  const gate=getGate(p);
+  const statusOpts=getStatusOptions(p);
+  let msg=`Patient: ${p.name}\nType: ${p.type}\nStatus: ${p.status}\n\n`;
+  msg+=`_checks loaded: ${(p._checks||[]).length} records\n\n`;
+  tasks.forEach((t,ti)=>{
+    const sopDone=(p._checks||[]).filter(c=>c.task_index===ti&&c.is_done).length;
+    const sopTotal=t.checks.length;
+    msg+=`Task ${ti}: ${t.title}\n  SOP: ${sopDone}/${sopTotal}\n`;
+  });
+  msg+=`\nGate for Treatment Booked: ${JSON.stringify(gate['Treatment Booked'])}\n`;
+  const result=canMove(p,'Treatment Booked');
+  msg+=`canMove result: ${JSON.stringify(result)}\n`;
+  msg+=`\nValid statuses: ${statusOpts.join(', ')}`;
+  alert(msg);
+}
+
 function isTaskUnlocked(p,ti){
   const curIdx=STATUS_ORDER.indexOf(p.status);
   const tsm=getTaskStageMap(p);
@@ -853,6 +872,7 @@ function renderDetail(p){
         ${getStatusOptions(p).map(s=>{const locked=!canMove(p,s).ok;return`<option value="${s}"${s===p.status?' selected':''}>${locked?'🔒 ':''}${s}</option>`;}).join('')}
       </select>
       <button class="btn btn-sm btn-blue" onclick="openEdit('${p.id}')">Edit</button>
+      <button class="btn btn-sm" onclick="debugMove('${p.id}')" style="background:#F1EFE8;font-size:10px">Debug</button>
       <button class="btn btn-sm btn-notify" onclick="openNotify('${p.id}')">🔔 Notify</button>
       <button class="btn btn-sm btn-red" onclick="delPt('${p.id}')">Delete</button>
     </div>
