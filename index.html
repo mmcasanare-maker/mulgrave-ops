@@ -171,19 +171,147 @@ hr{border:none;border-top:1px solid #F0EDE8;margin:12px 0}
 .atm-task-title{font-size:12px;font-weight:600;color:#1A1A18;margin-bottom:3px}
 .atm-task-patient{font-size:11px;color:#6B6B68;margin-bottom:4px}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid #D0CCC6;border-top-color:#185FA5;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+/* AUTH SCREENS */
+.auth-screen{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#F7F3EE;z-index:999;align-items:center;justify-content:center;padding:1.5rem}
+.auth-screen.active{display:flex}
+.auth-card{background:#fff;border:1px solid #E8E4DF;border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.auth-logo{font-size:18px;font-weight:700;color:#1A1A18;margin-bottom:.25rem}
+.auth-sub{font-size:12px;color:#6B6B68;margin-bottom:2rem}
+.auth-title{font-size:17px;font-weight:700;color:#1A1A18;margin-bottom:.5rem}
+.auth-desc{font-size:12px;color:#6B6B68;margin-bottom:1.5rem;line-height:1.6}
+.auth-field{display:flex;flex-direction:column;gap:5px;margin-bottom:1rem}
+.auth-field label{font-size:11px;font-weight:600;color:#6B6B68;text-transform:uppercase;letter-spacing:.05em}
+.auth-field input{font-size:14px;padding:10px 12px;border-radius:8px;border:1px solid #D0CCC6;background:#fff;color:#1A1A18;font-family:inherit;outline:none;width:100%}
+.auth-field input:focus{border-color:#185FA5;box-shadow:0 0 0 3px rgba(24,95,165,.1)}
+.auth-btn{width:100%;font-size:14px;font-weight:600;padding:11px;border-radius:8px;border:none;background:#185FA5;color:#fff;cursor:pointer;font-family:inherit;transition:background .2s;margin-top:.5rem}
+.auth-btn:hover{background:#0C447C}
+.auth-btn:disabled{opacity:.6;cursor:not-allowed}
+.auth-link{font-size:12px;color:#185FA5;cursor:pointer;background:none;border:none;font-family:inherit;padding:0;text-decoration:underline}
+.auth-link:hover{color:#0C447C}
+.auth-error{background:#FCEBEB;border:1px solid #F09595;border-radius:8px;padding:10px 12px;font-size:12px;color:#791F1F;margin-bottom:1rem;display:none}
+.auth-success{background:#EAF3DE;border:1px solid #97C459;border-radius:8px;padding:10px 12px;font-size:12px;color:#27500A;margin-bottom:1rem;display:none}
+.auth-divider{text-align:center;font-size:11px;color:#A0A09D;margin:1rem 0}
+.qr-container{text-align:center;margin:1rem 0}
+.qr-container img{border:1px solid #E8E4DF;border-radius:8px;padding:8px;background:#fff}
+.otp-inputs{display:flex;gap:8px;justify-content:center;margin:1rem 0}
+.otp-inputs input{width:44px;height:52px;text-align:center;font-size:20px;font-weight:700;border:1px solid #D0CCC6;border-radius:8px;font-family:inherit;outline:none}
+.otp-inputs input:focus{border-color:#185FA5;box-shadow:0 0 0 3px rgba(24,95,165,.1)}
+.user-avatar-lg{width:48px;height:48px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff;margin-bottom:.75rem}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:900px){.kanban{grid-template-columns:repeat(3,minmax(155px,1fr))}}
 @media(max-width:600px){.kanban{grid-template-columns:repeat(2,minmax(150px,1fr))}.stats{grid-template-columns:repeat(2,1fr)}body{padding:1rem}}
+/* ── AUTH SCREENS ── */
+.auth-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:#F7F3EE;z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem}
+.auth-card{background:#fff;border:1px solid #E8E4DF;border-radius:12px;padding:2rem;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.auth-logo{font-size:18px;font-weight:700;color:#1A1A18;margin-bottom:4px}
+.auth-sub{font-size:12px;color:#6B6B68;margin-bottom:1.75rem}
+.auth-title{font-size:15px;font-weight:700;color:#1A1A18;margin-bottom:1.25rem}
+.auth-group{margin-bottom:12px;display:flex;flex-direction:column;gap:4px}
+.auth-group label{font-size:11px;color:#6B6B68;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.auth-group input{font-size:13px;padding:9px 12px;border-radius:8px;border:1px solid #D0CCC6;background:#fff;color:#1A1A18;font-family:inherit;outline:none;width:100%}
+.auth-group input:focus{border-color:#185FA5;box-shadow:0 0 0 3px rgba(24,95,165,.1)}
+.auth-btn{width:100%;font-size:13px;font-weight:600;padding:10px;border-radius:8px;border:none;background:#185FA5;color:#fff;cursor:pointer;font-family:inherit;margin-top:4px;transition:background .2s}
+.auth-btn:hover{background:#0C447C}
+.auth-btn:disabled{opacity:.6;cursor:not-allowed}
+.auth-link{font-size:12px;color:#185FA5;cursor:pointer;background:none;border:none;font-family:inherit;padding:0;text-decoration:underline}
+.auth-link:hover{color:#0C447C}
+.auth-error{background:#FCEBEB;border:1px solid #F09595;border-radius:6px;padding:8px 12px;font-size:12px;color:#791F1F;margin-bottom:12px;display:none}
+.auth-success{background:#EAF3DE;border:1px solid #97C459;border-radius:6px;padding:8px 12px;font-size:12px;color:#27500A;margin-bottom:12px;display:none}
+.auth-divider{text-align:center;font-size:11px;color:#A0A09D;margin:12px 0}
+.auth-otp-inputs{display:flex;gap:8px;justify-content:center;margin:1rem 0}
+.auth-otp-inputs input{width:44px;height:52px;text-align:center;font-size:20px;font-weight:700;border-radius:8px;border:1px solid #D0CCC6;outline:none;font-family:inherit}
+.auth-otp-inputs input:focus{border-color:#185FA5;box-shadow:0 0 0 3px rgba(24,95,165,.1)}
+.auth-user-info{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F0EDE8}
+.auth-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0}
+.topbar-user{display:flex;align-items:center;gap:8px;font-size:12px;color:#6B6B68}
+.topbar-user strong{color:#1A1A18}
 </style>
 </head>
 <body>
-<div class="app">
+<!-- LOGIN SCREEN -->
+<div class="auth-screen" id="screenLogin">
+  <div class="auth-card">
+    <div class="auth-logo">Mulgrave Dental Group</div>
+    <div class="auth-sub">SuperCare Tracker</div>
+    <div class="auth-title">Sign in</div>
+    <div class="auth-desc">Enter your email and password to access the tracker.</div>
+    <div class="auth-error" id="loginError"></div>
+    <div class="auth-field"><label>Email</label><input type="email" id="loginEmail" placeholder="you@mulgrave.com.au" autocomplete="email"></div>
+    <div class="auth-field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="auth-btn" id="loginBtn" onclick="doLogin()">Sign in</button>
+    <div class="auth-divider">or</div>
+    <div style="text-align:center"><button class="auth-link" onclick="showScreen('screenReset')">Forgot password?</button></div>
+  </div>
+</div>
+
+<!-- 2FA SETUP SCREEN (first time) -->
+<div class="auth-screen" id="screenMfaSetup">
+  <div class="auth-card">
+    <div class="auth-logo">Mulgrave Dental Group</div>
+    <div class="auth-sub">Two-factor authentication setup</div>
+    <div class="auth-title">Set up 2FA</div>
+    <div class="auth-desc">Scan this QR code with <strong>Google Authenticator</strong> or <strong>Microsoft Authenticator</strong>, then enter the 6-digit code to confirm.</div>
+    <div class="auth-error" id="mfaSetupError"></div>
+    <div class="qr-container" id="mfaQrContainer"><div class="spinner"></div></div>
+    <div style="font-size:11px;color:#6B6B68;text-align:center;margin-bottom:.75rem">Can't scan? <button class="auth-link" onclick="showMfaSecret()">Enter code manually</button></div>
+    <div id="mfaSecretBox" style="display:none;background:#F7F3EE;border-radius:8px;padding:10px;text-align:center;font-family:monospace;font-size:13px;letter-spacing:.15em;margin-bottom:1rem;color:#1A1A18"></div>
+    <div class="auth-field"><label>Verification code</label><input type="text" id="mfaSetupCode" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code"></div>
+    <button class="auth-btn" id="mfaSetupBtn" onclick="verifyMfaSetup()">Confirm & activate 2FA</button>
+  </div>
+</div>
+
+<!-- 2FA VERIFY SCREEN (every login) -->
+<div class="auth-screen" id="screenMfaVerify">
+  <div class="auth-card">
+    <div class="auth-logo">Mulgrave Dental Group</div>
+    <div class="auth-sub">Two-factor authentication</div>
+    <div class="auth-title">Enter your code</div>
+    <div class="auth-desc">Open your authenticator app and enter the 6-digit code for Mulgrave Dental Group.</div>
+    <div class="auth-error" id="mfaVerifyError"></div>
+    <div class="otp-inputs" id="otpInputs">
+      <input type="text" maxlength="1" inputmode="numeric" oninput="otpInput(this,0)" onkeydown="otpKey(event,0)">
+      <input type="text" maxlength="1" inputmode="numeric" oninput="otpInput(this,1)" onkeydown="otpKey(event,1)">
+      <input type="text" maxlength="1" inputmode="numeric" oninput="otpInput(this,2)" onkeydown="otpKey(event,2)">
+      <input type="text" maxlength="1" inputmode="numeric" oninput="otpInput(this,3)" onkeydown="otpKey(event,3)">
+      <input type="text" maxlength="1" inputmode="numeric" oninput="otpInput(this,4)" onkeydown="otpKey(event,4)">
+      <input type="text" maxlength="1" inputmode="numeric" oninput="otpInput(this,5)" onkeydown="otpKey(event,5)">
+    </div>
+    <button class="auth-btn" id="mfaVerifyBtn" onclick="verifyMfaCode()">Verify</button>
+    <div class="auth-divider"></div>
+    <div style="text-align:center"><button class="auth-link" onclick="doSignOut()">Sign out and try again</button></div>
+  </div>
+</div>
+
+<!-- PASSWORD RESET SCREEN -->
+<div class="auth-screen" id="screenReset">
+  <div class="auth-card">
+    <div class="auth-logo">Mulgrave Dental Group</div>
+    <div class="auth-sub">Password reset</div>
+    <div class="auth-title">Reset your password</div>
+    <div class="auth-desc">Enter your email address and we'll send you a link to reset your password.</div>
+    <div class="auth-error" id="resetError"></div>
+    <div class="auth-success" id="resetSuccess"></div>
+    <div class="auth-field"><label>Email</label><input type="email" id="resetEmail" placeholder="you@mulgrave.com.au"></div>
+    <button class="auth-btn" id="resetBtn" onclick="doReset()">Send reset link</button>
+    <div class="auth-divider"></div>
+    <div style="text-align:center"><button class="auth-link" onclick="showScreen('screenLogin')">Back to sign in</button></div>
+  </div>
+</div>
+
+
+<div class="app" id="app-root" style="display:none">
   <div class="topbar">
     <div>
       <div class="app-title">SuperCare Tracker</div>
       <div class="app-sub">Mulgrave Dental Group — Live</div>
     </div>
     <div class="top-actions">
+      <span id="currentUserName" style="font-size:11px;color:#6B6B68;padding:0 4px"></span>
+      <button class="btn" onclick="openInviteModal()" style="font-size:11px">👥 Invite</button>
+      <button class="btn" onclick="doSignOut()" style="font-size:11px">Sign out</button>
       <button class="btn btn-purple" id="reportBtn">📋 Report</button>
       <button class="btn btn-green" id="exportCsv">⬇ CSV</button>
       <button class="btn" id="manageUsers">👤 Users</button>
@@ -193,6 +321,11 @@ hr{border:none;border-top:1px solid #F0EDE8;margin:12px 0}
       </div>
       <button class="btn" id="toggleView">List view</button>
       <button class="btn btn-blue" id="openAdd">+ New patient</button>
+      <div class="topbar-user" id="topbarUser" style="display:none">
+        <div id="topbarAvatar" class="auth-avatar" style="width:28px;height:28px;font-size:11px"></div>
+        <div><strong id="topbarEmail"></strong></div>
+        <button class="btn btn-sm" onclick="signOut()" title="Sign out">Sign out</button>
+      </div>
     </div>
   </div>
 
@@ -242,6 +375,7 @@ hr{border:none;border-top:1px solid #F0EDE8;margin:12px 0}
     </div>
   </div>
 </div>
+</div><!-- end .app -->
 
 <div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalBox"></div></div>
 
@@ -1565,7 +1699,238 @@ async function testAndLoad(){
     console.error('testAndLoad exception:',e);
   }
 }
-testAndLoad();
+// Start with auth check
+checkAuth();
+
+// ── AUTH STATE ──────────────────────────────────────────────────────────────
+let currentUser=null;
+let mfaFactorId=null;
+let mfaChallengeId=null;
+
+function showScreen(id){
+  document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('app-root').style.display='none';
+  const el=document.getElementById(id);
+  if(el)el.classList.add('active');
+}
+
+function showApp(){
+  document.querySelectorAll('.auth-screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('app-root').style.display='block';
+}
+
+function showAuthError(elId,msg){
+  const el=document.getElementById(elId);
+  if(el){el.textContent=msg;el.style.display='block';}
+}
+function hideAuthError(elId){
+  const el=document.getElementById(elId);
+  if(el)el.style.display='none';
+}
+
+// ── LOGIN ───────────────────────────────────────────────────────────────────
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const password=document.getElementById('loginPassword').value;
+  if(!email||!password){showAuthError('loginError','Please enter your email and password.');return;}
+  const btn=document.getElementById('loginBtn');
+  btn.disabled=true;btn.textContent='Signing in...';
+  hideAuthError('loginError');
+  const{data,error}=await db.auth.signInWithPassword({email,password});
+  btn.disabled=false;btn.textContent='Sign in';
+  if(error){showAuthError('loginError',error.message);return;}
+  currentUser=data.user;
+  // Check if MFA is required
+  const{data:mfaData}=await db.auth.mfa.listFactors();
+  const totpFactors=(mfaData?.totp||[]).filter(f=>f.status==='verified');
+  if(totpFactors.length>0){
+    // MFA enrolled — challenge it
+    mfaFactorId=totpFactors[0].id;
+    const{data:challenge,error:cErr}=await db.auth.mfa.challenge({factorId:mfaFactorId});
+    if(cErr){showAuthError('loginError','MFA challenge failed: '+cErr.message);return;}
+    mfaChallengeId=challenge.id;
+    showScreen('screenMfaVerify');
+    setTimeout(()=>document.querySelector('#otpInputs input')?.focus(),100);
+  } else {
+    // No MFA yet — enroll
+    await setupMfa();
+  }
+}
+
+// ── MFA SETUP ───────────────────────────────────────────────────────────────
+async function setupMfa(){
+  showScreen('screenMfaSetup');
+  const{data,error}=await db.auth.mfa.enroll({factorType:'totp',issuer:'Mulgrave Dental Group'});
+  if(error){showAuthError('mfaSetupError','MFA setup failed: '+error.message);return;}
+  mfaFactorId=data.id;
+  // Show QR code
+  const qrEl=document.getElementById('mfaQrContainer');
+  if(data.totp?.qr_code){
+    qrEl.innerHTML=`<img src="${data.totp.qr_code}" width="180" height="180" alt="QR Code">`;
+  }
+  document.getElementById('mfaSecretBox').textContent=data.totp?.secret||'';
+}
+
+function showMfaSecret(){
+  const box=document.getElementById('mfaSecretBox');
+  box.style.display=box.style.display==='none'?'block':'none';
+}
+
+async function verifyMfaSetup(){
+  const code=document.getElementById('mfaSetupCode').value.replace(/\s/g,'');
+  if(code.length!==6){showAuthError('mfaSetupError','Please enter the 6-digit code.');return;}
+  const btn=document.getElementById('mfaSetupBtn');
+  btn.disabled=true;btn.textContent='Verifying...';
+  hideAuthError('mfaSetupError');
+  const{data:challenge,error:cErr}=await db.auth.mfa.challenge({factorId:mfaFactorId});
+  if(cErr){showAuthError('mfaSetupError',cErr.message);btn.disabled=false;btn.textContent='Confirm & activate 2FA';return;}
+  const{error:vErr}=await db.auth.mfa.verify({factorId:mfaFactorId,challengeId:challenge.id,code});
+  btn.disabled=false;btn.textContent='Confirm & activate 2FA';
+  if(vErr){showAuthError('mfaSetupError','Invalid code. Please try again.');return;}
+  // MFA enrolled successfully
+  onAuthSuccess();
+}
+
+// ── MFA VERIFY ──────────────────────────────────────────────────────────────
+function otpInput(el,idx){
+  el.value=el.value.replace(/\D/g,'');
+  if(el.value&&idx<5){
+    const inputs=document.querySelectorAll('#otpInputs input');
+    inputs[idx+1]?.focus();
+  }
+  // Auto-submit when all 6 filled
+  const inputs=document.querySelectorAll('#otpInputs input');
+  const code=[...inputs].map(i=>i.value).join('');
+  if(code.length===6)verifyMfaCode();
+}
+
+function otpKey(event,idx){
+  if(event.key==='Backspace'){
+    const inputs=document.querySelectorAll('#otpInputs input');
+    if(!inputs[idx].value&&idx>0)inputs[idx-1].focus();
+  }
+  // Handle paste
+  if(event.key==='v'&&(event.ctrlKey||event.metaKey)){
+    event.preventDefault();
+    navigator.clipboard.readText().then(txt=>{
+      const digits=txt.replace(/\D/g,'').slice(0,6);
+      const inputs=document.querySelectorAll('#otpInputs input');
+      digits.split('').forEach((d,i)=>{if(inputs[i])inputs[i].value=d;});
+      if(digits.length===6)verifyMfaCode();
+    });
+  }
+}
+
+async function verifyMfaCode(){
+  const inputs=document.querySelectorAll('#otpInputs input');
+  const code=[...inputs].map(i=>i.value).join('');
+  if(code.length!==6)return;
+  const btn=document.getElementById('mfaVerifyBtn');
+  btn.disabled=true;btn.textContent='Verifying...';
+  hideAuthError('mfaVerifyError');
+  const{error}=await db.auth.mfa.verify({factorId:mfaFactorId,challengeId:mfaChallengeId,code});
+  btn.disabled=false;btn.textContent='Verify';
+  if(error){
+    showAuthError('mfaVerifyError','Invalid code. Please try again.');
+    document.querySelectorAll('#otpInputs input').forEach(i=>i.value='');
+    document.querySelector('#otpInputs input')?.focus();
+    return;
+  }
+  onAuthSuccess();
+}
+
+// ── PASSWORD RESET ──────────────────────────────────────────────────────────
+async function doReset(){
+  const email=document.getElementById('resetEmail').value.trim();
+  if(!email){showAuthError('resetError','Please enter your email.');return;}
+  const btn=document.getElementById('resetBtn');
+  btn.disabled=true;btn.textContent='Sending...';
+  hideAuthError('resetError');
+  const{error}=await db.auth.resetPasswordForEmail(email,{
+    redirectTo:window.location.href
+  });
+  btn.disabled=false;btn.textContent='Send reset link';
+  if(error){showAuthError('resetError',error.message);return;}
+  const s=document.getElementById('resetSuccess');
+  s.textContent='Reset link sent! Check your email.';
+  s.style.display='block';
+}
+
+// ── SIGN OUT ─────────────────────────────────────────────────────────────────
+async function doSignOut(){
+  await db.auth.signOut();
+  currentUser=null;
+  showScreen('screenLogin');
+}
+
+// ── AUTH SUCCESS → LOAD APP ──────────────────────────────────────────────────
+async function onAuthSuccess(){
+  showApp();
+  // Update user display name in top bar
+  const userEl=document.getElementById('currentUserName');
+  if(userEl&&currentUser)userEl.textContent=currentUser.email;
+  testAndLoad();
+}
+
+// ── CHECK SESSION ON LOAD ────────────────────────────────────────────────────
+async function checkAuth(){
+  initDB();
+  if(!db){showScreen('screenLogin');return;}
+  const{data:{session}}=await db.auth.getSession();
+  if(!session){showScreen('screenLogin');return;}
+  currentUser=session.user;
+  // Check AAL (assurance level) — if MFA enrolled, need AAL2
+  const{data:aalData}=await db.auth.mfa.getAuthenticatorAssuranceLevel();
+  if(aalData?.nextLevel==='aal2'&&aalData?.currentLevel!=='aal2'){
+    // Need MFA verification
+    const{data:mfaData}=await db.auth.mfa.listFactors();
+    const totpFactors=(mfaData?.totp||[]).filter(f=>f.status==='verified');
+    if(totpFactors.length>0){
+      mfaFactorId=totpFactors[0].id;
+      const{data:challenge}=await db.auth.mfa.challenge({factorId:mfaFactorId});
+      mfaChallengeId=challenge?.id;
+      showScreen('screenMfaVerify');
+      setTimeout(()=>document.querySelector('#otpInputs input')?.focus(),100);
+      return;
+    }
+  }
+  onAuthSuccess();
+}
+
+function openInviteModal(){
+  document.getElementById('modalBox').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div class="modal-title" style="margin:0">Invite team member</div>
+      <button class="btn btn-sm" onclick="closeModal()">Close</button>
+    </div>
+    <p style="font-size:12px;color:#6B6B68;margin-bottom:1rem">An invitation email will be sent. They'll set their own password and then be prompted to set up 2FA on first login.</p>
+    <div class="form-group"><label>Email address</label><input id="inviteEmail" type="email" placeholder="name@mulgrave.com.au"></div>
+    <div class="form-actions"><button class="btn btn-blue" id="inviteBtn" onclick="inviteUser()">Send invite</button></div>
+    <hr>
+    <div style="font-size:12px;color:#6B6B68">
+      <strong>Can't send via app?</strong> Go to Supabase Dashboard → Authentication → Users → <strong>Invite user</strong> and enter their email directly.
+    </div>`;
+  document.getElementById('modalOverlay').style.display='flex';
+}
+
+// ── ADMIN: INVITE USER ───────────────────────────────────────────────────────
+async function inviteUser(){
+  const email=document.getElementById('inviteEmail').value.trim();
+  if(!email){alert('Please enter an email address.');return;}
+  const btn=document.getElementById('inviteBtn');
+  btn.disabled=true;btn.textContent='Sending...';
+  // Use Supabase admin invite
+  const{error}=await db.auth.admin?.inviteUserByEmail?.(email)||
+    await db.functions.invoke('invite-user',{body:{email}});
+  btn.disabled=false;btn.textContent='Send invite';
+  if(error){
+    // Fallback: show manual instruction
+    alert(`To invite ${email}: go to Supabase Dashboard → Authentication → Users → Invite user, and enter their email.`);
+    return;
+  }
+  alert(`Invite sent to ${email}!`);
+  document.getElementById('inviteEmail').value='';
+}
 </script>
 </body>
 </html>
